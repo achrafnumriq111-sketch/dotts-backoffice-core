@@ -4,6 +4,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/context/AuthContext";
+import { OrgProvider } from "@/context/OrgContext";
 import { NotificationsProvider } from "@/context/NotificationsContext";
 import { RequireAuth } from "@/components/auth/RequireAuth";
 import { AppLayout } from "@/components/layout/AppLayout";
@@ -27,31 +28,29 @@ const App = () => (
       <Toaster />
       <Sonner />
       <AuthProvider>
-        <NotificationsProvider>
-          <BrowserRouter>
-            <Routes>
-              <Route
-                element={
-                  <RequireAuth>
-                    <AppLayout />
-                  </RequireAuth>
-                }
-              >
-                <Route path="/" element={<Navigate to="/dashboard" replace />} />
-                <Route path="/dashboard" element={<Dashboard />} />
-                <Route path="/kassa" element={<Register />} />
-                <Route path="/producten" element={<Products />} />
-                <Route path="/verkopen" element={<Sales />} />
-                <Route path="/kasafsluiting" element={<Closing />} />
-                <Route path="/locaties" element={<Locations />} />
-                <Route path="/team" element={<Team />} />
-                <Route path="/instellingen" element={<SettingsPage />} />
-                <Route path="/abonnement" element={<Subscription />} />
-                <Route path="*" element={<NotFound />} />
-              </Route>
-            </Routes>
-          </BrowserRouter>
-        </NotificationsProvider>
+        <RequireAuth>
+          <OrgProvider>
+            <NotificationsProvider>
+              <BrowserRouter>
+                <Routes>
+                  <Route element={<AppLayout />}>
+                    <Route path="/" element={<Navigate to="/dashboard" replace />} />
+                    <Route path="/dashboard" element={<Dashboard />} />
+                    <Route path="/kassa" element={<Register />} />
+                    <Route path="/producten" element={<Products />} />
+                    <Route path="/verkopen" element={<Sales />} />
+                    <Route path="/kasafsluiting" element={<Closing />} />
+                    <Route path="/locaties" element={<Locations />} />
+                    <Route path="/team" element={<Team />} />
+                    <Route path="/instellingen" element={<SettingsPage />} />
+                    <Route path="/abonnement" element={<Subscription />} />
+                    <Route path="*" element={<NotFound />} />
+                  </Route>
+                </Routes>
+              </BrowserRouter>
+            </NotificationsProvider>
+          </OrgProvider>
+        </RequireAuth>
       </AuthProvider>
     </TooltipProvider>
   </QueryClientProvider>

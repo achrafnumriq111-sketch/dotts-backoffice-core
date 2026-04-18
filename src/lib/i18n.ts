@@ -197,3 +197,38 @@ export function formatDateTime(date: Date | string, locale: Locale = DEFAULT_LOC
     timeZone: "Europe/Amsterdam",
   }).format(d);
 }
+
+/** Format an integer cents amount as EUR (nl-NL). */
+export function formatEUR(cents: number | null | undefined): string {
+  const value = typeof cents === "number" ? cents / 100 : 0;
+  return new Intl.NumberFormat("nl-NL", {
+    style: "currency",
+    currency: "EUR",
+  }).format(value);
+}
+
+/** Format an ISO date string as DD-MM-YYYY (nl-NL). */
+export function formatDateNL(iso: string | Date | null | undefined): string {
+  if (!iso) return "—";
+  const d = typeof iso === "string" ? new Date(iso) : iso;
+  if (Number.isNaN(d.getTime())) return "—";
+  return new Intl.DateTimeFormat("nl-NL", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  }).format(d);
+}
+
+/** Format an ISO date string as DD-MM-YYYY HH:mm (nl-NL). */
+export function formatDateTimeNL(iso: string | Date | null | undefined): string {
+  if (!iso) return "—";
+  const d = typeof iso === "string" ? new Date(iso) : iso;
+  if (Number.isNaN(d.getTime())) return "—";
+  return new Intl.DateTimeFormat("nl-NL", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(d);
+}

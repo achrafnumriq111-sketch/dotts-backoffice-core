@@ -1,57 +1,48 @@
-import { createContext, useContext, useMemo, useState, ReactNode } from "react";
+import { createContext, useContext, useEffect, useMemo, useState, ReactNode } from "react";
+import type { Session, User } from "@supabase/supabase-js";
+import { supabase } from "@/integrations/supabase/client";
 
-export interface User {
-  id: string;
-  name: string;
-  email: string;
-  avatarUrl?: string;
-}
-
-export interface Organization {
-  id: string;
-  name: string;
-}
+const AUTH_BASE_URL = "https://auth.mydotts.nl";
 
 interface AuthContextValue {
   user: User | null;
-  organization: Organization | null;
-  isAuthenticated: boolean;
-  signOut: () => void;
+  session: Session | null;
+  loading: boolean;
+  signOut: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
-const AUTH_BASE_URL = "https://auth.mydotts.nl";
-
-// Mocked session for now. Replace with real Supabase session later.
-const MOCK_USER: User = {
-  id: "usr_mock_1",
-  name: "Sanne de Vries",
-  email: "sanne@brouwcafe.nl",
-  avatarUrl: undefined,
-};
-
-const MOCK_ORG: Organization = {
-  id: "org_mock_1",
-  name: "Brouwcafé De Hoek",
-};
-
 export function AuthProvider({ children }: { children: ReactNode }) {
-  // In real wiring this would come from Supabase. For now we simulate "logged in".
-  const [user] = useState<User | null>(MOCK_USER);
-  const [organization] = useState<Organization | null>(MOCK_ORG);
+  const [session, setSession] = useState<Session | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    // Subscribe FIRST so we never miss an event between getSession and listener setup.
+    const { data: sub } = supabase.auth.onAuthStateChange((_event, newSession) => {
+      setSession(newSession);
+      setLoading(false);
+    });
+
+    supabase.auth.getSession().then(({ data }) => {
+      setSession(data.session);
+      setLoading(false);
+    });
+
+    return () => sub.subscription.unsubscribe();
+  }, []);
 
   const value = useMemo<AuthContextValue>(
     () => ({
-      user,
-      organization,
-      isAuthenticated: user !== null,
-      signOut: () => {
-        const redirect = encodeURIComponent(window.location.href);
-        window.location.href = `${AUTH_BASE_URL}/logout?redirect=${redirect}`;
+      user: session?.user ?? null,
+      session,
+      loading,
+      signOut: async () => {
+        await supabase.auth.signOut();
+        window.location.href = `${AUTH_BASE_URL}/login`;
       },
     }),
-    [user, organization],
+    [session, loading],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

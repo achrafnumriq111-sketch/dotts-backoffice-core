@@ -8,10 +8,53 @@ const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiO
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
 
+const PARENT_DOMAIN = ".mydotts.nl";
+
+const isProdMydottsHost = (): boolean => {
+  if (typeof window === "undefined") return false;
+  return window.location.hostname.endsWith("mydotts.nl");
+};
+
+/**
+ * Cookie-based storage adapter that scopes Supabase auth to the parent
+ * domain (.mydotts.nl) so the session set by auth.mydotts.nl is readable
+ * by app.mydotts.nl.
+ *
+ * Note: Supabase stores the session as a single JSON string per key, so
+ * one cookie per key is fine. Cookies are limited to ~4KB which is enough
+ * for a Supabase session (~2KB).
+ */
+const cookieStorage = {
+  getItem: (key: string): string | null => {
+    if (typeof document === "undefined") return null;
+    const match = document.cookie
+      .split("; ")
+      .find((row) => row.startsWith(encodeURIComponent(key) + "="));
+    if (!match) return null;
+    return decodeURIComponent(match.split("=").slice(1).join("="));
+  },
+  setItem: (key: string, value: string): void => {
+    if (typeof document === "undefined") return;
+    const maxAge = 60 * 60 * 24 * 365; // 1 year
+    document.cookie = `${encodeURIComponent(key)}=${encodeURIComponent(
+      value,
+    )}; domain=${PARENT_DOMAIN}; path=/; max-age=${maxAge}; secure; samesite=lax`;
+  },
+  removeItem: (key: string): void => {
+    if (typeof document === "undefined") return;
+    document.cookie = `${encodeURIComponent(key)}=; domain=${PARENT_DOMAIN}; path=/; max-age=0; secure; samesite=lax`;
+  },
+};
+
+const storage = isProdMydottsHost()
+  ? cookieStorage
+  : (typeof window !== "undefined" ? window.localStorage : undefined);
+
 export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
   auth: {
-    storage: localStorage,
+    storage,
     persistSession: true,
     autoRefreshToken: true,
-  }
+    detectSessionInUrl: true,
+  },
 });

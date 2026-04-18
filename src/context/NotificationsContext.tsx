@@ -1,4 +1,15 @@
-import { createContext, useContext, useMemo, useState, ReactNode } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+  ReactNode,
+} from "react";
+import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+import { useOrg } from "./OrgContext";
 
 export type NotificationSeverity = "info" | "warning" | "critical";
 
@@ -6,71 +17,118 @@ export interface AppNotification {
   id: string;
   severity: NotificationSeverity;
   title: string;
-  description?: string;
-  read?: boolean;
-  /** Whether this notification locks the app (only meaningful for critical). */
-  blocking?: boolean;
+  body: string | null;
+  action_url: string | null;
+  created_at: string;
 }
 
 interface NotificationsContextValue {
   notifications: AppNotification[];
   topNotification: AppNotification | null;
   isAccountBlocked: boolean;
-  // Mocked controls
-  setBlocked: (blocked: boolean) => void;
-  dismiss: (id: string) => void;
+  loading: boolean;
+  dismiss: (id: string) => Promise<void>;
+  refetch: () => void;
 }
 
 const NotificationsContext = createContext<NotificationsContextValue | undefined>(undefined);
 
 const SEVERITY_RANK: Record<NotificationSeverity, number> = {
-  info: 0,
+  critical: 0,
   warning: 1,
-  critical: 2,
+  info: 2,
 };
 
-const INITIAL: AppNotification[] = [
-  {
-    id: "n_invoice_due",
-    severity: "warning",
-    title: "Factuur 2025-0042 vervalt over 3 dagen",
-    description: "Bedrag € 79,00 — vervaldatum 21-04-2026.",
-  },
-];
+const isSeverity = (s: string): s is NotificationSeverity =>
+  s === "info" || s === "warning" || s === "critical";
 
 export function NotificationsProvider({ children }: { children: ReactNode }) {
-  const [notifications, setNotifications] = useState<AppNotification[]>(INITIAL);
-  const [blocked, setBlocked] = useState(false);
+  const { currentOrg } = useOrg();
+  const [notifications, setNotifications] = useState<AppNotification[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refetchKey, setRefetchKey] = useState(0);
+
+  const refetch = useCallback(() => setRefetchKey((k) => k + 1), []);
+
+  useEffect(() => {
+    if (!currentOrg) {
+      setNotifications([]);
+      setLoading(false);
+      return;
+    }
+
+    let cancelled = false;
+    setLoading(true);
+
+    (async () => {
+      const { data, error } = await supabase
+        .from("notifications")
+        .select("id, severity, title, body, action_url, created_at")
+        .eq("org_id", currentOrg.id)
+        .is("dismissed_at", null)
+        .order("created_at", { ascending: false })
+        .limit(50);
+
+      if (cancelled) return;
+
+      if (error) {
+        console.error("Failed to load notifications", error);
+        toast.error("Er ging iets mis bij het laden");
+        setLoading(false);
+        return;
+      }
+
+      const mapped: AppNotification[] = (data ?? [])
+        .filter((n) => isSeverity(n.severity))
+        .map((n) => ({
+          id: n.id,
+          severity: n.severity as NotificationSeverity,
+          title: n.title,
+          body: n.body,
+          action_url: n.action_url,
+          created_at: n.created_at,
+        }));
+
+      setNotifications(mapped);
+      setLoading(false);
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [currentOrg, refetchKey]);
+
+  const dismiss = useCallback(async (id: string) => {
+    setNotifications((prev) => prev.filter((n) => n.id !== id));
+    const { error } = await supabase
+      .from("notifications")
+      .update({ dismissed_at: new Date().toISOString() })
+      .eq("id", id);
+    if (error) {
+      console.error("Failed to dismiss notification", error);
+      toast.error("Er ging iets mis bij het laden");
+      refetch();
+    }
+  }, [refetch]);
 
   const value = useMemo<NotificationsContextValue>(() => {
-    const list = blocked
-      ? [
-          {
-            id: "n_blocked",
-            severity: "critical" as const,
-            title: "Account geblokkeerd — betaling vereist",
-            description: "Voltooi de openstaande betaling om weer toegang te krijgen.",
-            blocking: true,
-          },
-          ...notifications,
-        ]
-      : notifications;
-
-    const unread = list.filter((n) => !n.read);
-    const top =
-      unread.sort((a, b) => SEVERITY_RANK[b.severity] - SEVERITY_RANK[a.severity])[0] ?? null;
-
+    const sorted = [...notifications].sort(
+      (a, b) => SEVERITY_RANK[a.severity] - SEVERITY_RANK[b.severity],
+    );
+    const top = sorted[0] ?? null;
     return {
-      notifications: list,
+      notifications,
       topNotification: top,
-      isAccountBlocked: blocked,
-      setBlocked,
-      dismiss: (id: string) =>
-        setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, read: true } : n))),
+      isAccountBlocked: top?.severity === "critical",
+      loading,
+      dismiss,
+      refetch,
     };
-  }, [notifications, blocked]);
+  }, [notifications, loading, dismiss, refetch]);
 
-  return <NotificationsContext.Provider value={value}>{children}</NotificationsContext.Provider>;
+  return (
+    <NotificationsContext.Provider value={value}>{children}</NotificationsContext.Provider>
+  );
 }
 
 export function useNotifications(): NotificationsContextValue {
