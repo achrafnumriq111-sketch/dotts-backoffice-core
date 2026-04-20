@@ -12,6 +12,7 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import Dashboard from "./pages/Dashboard";
 import Register from "./pages/Register";
 import Products from "./pages/Products";
+import ModifierGroups from "./pages/ModifierGroups";
 import Sales from "./pages/Sales";
 import Closing from "./pages/Closing";
 import Locations from "./pages/Locations";
@@ -38,6 +39,7 @@ const App = () => (
                     <Route path="/dashboard" element={<Dashboard />} />
                     <Route path="/kassa" element={<Register />} />
                     <Route path="/producten" element={<Products />} />
+                    <Route path="/producten/modifier-groepen" element={<ModifierGroups />} />
                     <Route path="/verkopen" element={<Sales />} />
                     <Route path="/kasafsluiting" element={<Closing />} />
                     <Route path="/locaties" element={<Locations />} />
