@@ -1133,6 +1133,20 @@ export type Database = {
         Args: { p_name: string; p_slug?: string }
         Returns: string
       }
+      create_sale: {
+        Args: {
+          p_cash_received_cents?: number
+          p_change_cents?: number
+          p_discount_cents: number
+          p_items: Json
+          p_location_id: string
+          p_payment_method: string
+          p_subtotal_cents: number
+          p_tax_cents: number
+          p_total_cents: number
+        }
+        Returns: Json
+      }
       is_dotts_admin: { Args: never; Returns: boolean }
       next_receipt_number: { Args: { p_org_id: string }; Returns: string }
       org_is_locked: { Args: { p_org_id: string }; Returns: boolean }
