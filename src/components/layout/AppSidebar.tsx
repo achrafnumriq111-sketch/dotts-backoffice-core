@@ -9,6 +9,7 @@ import {
   Settings,
   CreditCard,
 } from "lucide-react";
+import { useLocation } from "react-router-dom";
 import { NavLink } from "@/components/NavLink";
 import {
   Sidebar,
@@ -24,21 +25,28 @@ import { t } from "@/lib/i18n";
 import { DottsLogo } from "./DottsLogo";
 
 const items = [
-  { titleKey: "dashboard", url: "/dashboard", icon: Home },
-  { titleKey: "register", url: "/kassa", icon: ShoppingCart },
-  { titleKey: "products", url: "/producten", icon: Package },
-  { titleKey: "sales", url: "/verkopen", icon: Receipt },
-  { titleKey: "closing", url: "/kasafsluiting", icon: Calculator },
-  { titleKey: "locations", url: "/locaties", icon: MapPin },
-  { titleKey: "team", url: "/team", icon: Users },
-  { titleKey: "settings", url: "/instellingen", icon: Settings },
-  { titleKey: "subscription", url: "/abonnement", icon: CreditCard },
+  { titleKey: "dashboard", url: "/dashboard", icon: Home, end: true },
+  { titleKey: "register", url: "/kassa", icon: ShoppingCart, end: true },
+  { titleKey: "products", url: "/producten", icon: Package, end: false },
+  { titleKey: "sales", url: "/verkopen", icon: Receipt, end: true },
+  { titleKey: "closing", url: "/kasafsluiting", icon: Calculator, end: true },
+  { titleKey: "locations", url: "/locaties", icon: MapPin, end: true },
+  { titleKey: "team", url: "/team", icon: Users, end: true },
+  { titleKey: "settings", url: "/instellingen", icon: Settings, end: true },
+  { titleKey: "subscription", url: "/abonnement", icon: CreditCard, end: true },
+] as const;
+
+const productsSubItems = [
+  { titleKey: "productsAll", url: "/producten", end: true },
+  { titleKey: "productsModifierGroups", url: "/producten/modifier-groepen", end: true },
 ] as const;
 
 export function AppSidebar() {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
   const tr = t();
+  const location = useLocation();
+  const inProducts = location.pathname.startsWith("/producten");
 
   return (
     <Sidebar collapsible="icon" className="border-r border-sidebar-border">
@@ -66,7 +74,7 @@ export function AppSidebar() {
                   <SidebarMenuButton asChild tooltip={tr.nav[item.titleKey]}>
                     <NavLink
                       to={item.url}
-                      end
+                      end={item.end}
                       className="flex items-center gap-3 rounded-md px-2 py-2 text-sm text-sidebar-foreground transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
                       activeClassName="bg-sidebar-accent text-sidebar-accent-foreground font-medium"
                     >
@@ -74,6 +82,23 @@ export function AppSidebar() {
                       {!collapsed && <span className="truncate">{tr.nav[item.titleKey]}</span>}
                     </NavLink>
                   </SidebarMenuButton>
+
+                  {item.titleKey === "products" && inProducts && !collapsed && (
+                    <SidebarMenu className="ml-7 mt-1 border-l border-sidebar-border pl-2">
+                      {productsSubItems.map((sub) => (
+                        <SidebarMenuItem key={sub.url}>
+                          <NavLink
+                            to={sub.url}
+                            end={sub.end}
+                            className="block rounded-md px-2 py-1.5 text-xs text-sidebar-foreground/70 transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                            activeClassName="bg-sidebar-accent text-sidebar-accent-foreground font-medium"
+                          >
+                            {tr.nav[sub.titleKey]}
+                          </NavLink>
+                        </SidebarMenuItem>
+                      ))}
+                    </SidebarMenu>
+                  )}
                 </SidebarMenuItem>
               ))}
             </SidebarMenu>

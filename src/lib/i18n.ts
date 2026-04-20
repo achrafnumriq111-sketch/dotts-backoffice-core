@@ -30,6 +30,8 @@ const nl = {
     dashboard: "Dashboard",
     register: "Kassa",
     products: "Producten",
+    productsAll: "Alle producten",
+    productsModifierGroups: "Modifier-groepen",
     sales: "Verkopen",
     closing: "Kasafsluiting",
     locations: "Locaties",

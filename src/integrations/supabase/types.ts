@@ -153,6 +153,101 @@ export type Database = {
           },
         ]
       }
+      modifier_groups: {
+        Row: {
+          active: boolean
+          created_at: string
+          id: string
+          max_select: number
+          min_select: number
+          name: string
+          org_id: string
+          required: boolean
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          max_select?: number
+          min_select?: number
+          name: string
+          org_id: string
+          required?: boolean
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          max_select?: number
+          min_select?: number
+          name?: string
+          org_id?: string
+          required?: boolean
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "modifier_groups_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      modifiers: {
+        Row: {
+          active: boolean
+          created_at: string
+          group_id: string
+          id: string
+          name: string
+          org_id: string
+          price_delta_cents: number
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          group_id: string
+          id?: string
+          name: string
+          org_id: string
+          price_delta_cents?: number
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          group_id?: string
+          id?: string
+          name?: string
+          org_id?: string
+          price_delta_cents?: number
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "modifiers_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "modifier_groups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "modifiers_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       notifications: {
         Row: {
           action_url: string | null
@@ -499,6 +594,106 @@ export type Database = {
           },
         ]
       }
+      product_modifier_groups: {
+        Row: {
+          created_at: string
+          group_id: string
+          org_id: string
+          product_id: string
+          sort_order: number
+        }
+        Insert: {
+          created_at?: string
+          group_id: string
+          org_id: string
+          product_id: string
+          sort_order?: number
+        }
+        Update: {
+          created_at?: string
+          group_id?: string
+          org_id?: string
+          product_id?: string
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_modifier_groups_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "modifier_groups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_modifier_groups_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_modifier_groups_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      product_variants: {
+        Row: {
+          active: boolean
+          created_at: string
+          id: string
+          name: string
+          org_id: string
+          price_cents: number
+          product_id: string
+          sku: string | null
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          name: string
+          org_id: string
+          price_cents: number
+          product_id: string
+          sku?: string | null
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          name?: string
+          org_id?: string
+          price_cents?: number
+          product_id?: string
+          sku?: string | null
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_variants_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_variants_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       products: {
         Row: {
           barcode: string | null
@@ -661,12 +856,15 @@ export type Database = {
           line_subtotal_cents: number
           line_tax_cents: number
           line_total_cents: number
+          modifiers: Json
           name_snapshot: string
           price_cents_snapshot: number
           product_id: string | null
           quantity: number
           sale_id: string
           tax_rate_bps_snapshot: number
+          variant_id: string | null
+          variant_name: string | null
         }
         Insert: {
           created_at?: string
@@ -675,12 +873,15 @@ export type Database = {
           line_subtotal_cents: number
           line_tax_cents?: number
           line_total_cents: number
+          modifiers?: Json
           name_snapshot: string
           price_cents_snapshot: number
           product_id?: string | null
           quantity?: number
           sale_id: string
           tax_rate_bps_snapshot?: number
+          variant_id?: string | null
+          variant_name?: string | null
         }
         Update: {
           created_at?: string
@@ -689,12 +890,15 @@ export type Database = {
           line_subtotal_cents?: number
           line_tax_cents?: number
           line_total_cents?: number
+          modifiers?: Json
           name_snapshot?: string
           price_cents_snapshot?: number
           product_id?: string | null
           quantity?: number
           sale_id?: string
           tax_rate_bps_snapshot?: number
+          variant_id?: string | null
+          variant_name?: string | null
         }
         Relationships: [
           {
@@ -709,6 +913,13 @@ export type Database = {
             columns: ["sale_id"]
             isOneToOne: false
             referencedRelation: "sales"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sale_items_variant_id_fkey"
+            columns: ["variant_id"]
+            isOneToOne: false
+            referencedRelation: "product_variants"
             referencedColumns: ["id"]
           },
         ]
@@ -918,11 +1129,20 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      create_org_with_owner: {
+        Args: { p_name: string; p_slug?: string }
+        Returns: string
+      }
       is_dotts_admin: { Args: never; Returns: boolean }
       next_receipt_number: { Args: { p_org_id: string }; Returns: string }
       org_is_locked: { Args: { p_org_id: string }; Returns: boolean }
       process_overdue_invoices: { Args: never; Returns: undefined }
-      user_org_ids: { Args: never; Returns: string[] }
+      user_org_ids: {
+        Args: never
+        Returns: {
+          org_id: string
+        }[]
+      }
     }
     Enums: {
       org_role: "owner" | "admin" | "manager" | "staff"
