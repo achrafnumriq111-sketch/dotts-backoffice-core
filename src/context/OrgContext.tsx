@@ -55,30 +55,52 @@ export function OrgProvider({ children }: { children: ReactNode }) {
     setLoading(true);
 
     (async () => {
+      const {
+        data: { user: authUser },
+      } = await supabase.auth.getUser();
+
+      if (cancelled) return;
+
+      if (!authUser) {
+        setOrgs([]);
+        setCurrentOrgId(null);
+        setLoading(false);
+        return;
+      }
+
       const { data, error } = await supabase
         .from("org_members")
-        .select("role, org_id, organizations(id, name, slug)")
+        .select("role, org_id, created_at, organizations(id, name, slug)")
+        .eq("user_id", authUser.id)
         .order("created_at", { ascending: true });
 
       if (cancelled) return;
 
       if (error) {
-        console.error("Failed to load orgs", error);
+        console.error("orgs load failed", error);
         toast.error("Er ging iets mis bij het laden");
+        setOrgs([]);
+        setCurrentOrgId(null);
         setLoading(false);
         return;
       }
 
-      const memberships: OrgMembership[] = (data ?? [])
-        .filter((row) => row.organizations !== null)
-        .map((row) => ({
+      // Dedupe by org id (safety net in case RLS/join returns duplicates)
+      const seen = new Set<string>();
+      const memberships: OrgMembership[] = [];
+      for (const row of data ?? []) {
+        const org = row.organizations as OrgMembership["organization"] | null;
+        if (!org || seen.has(org.id)) continue;
+        seen.add(org.id);
+        memberships.push({
           org_id: row.org_id,
           role: row.role,
-          organization: row.organizations as OrgMembership["organization"],
-        }));
+          organization: org,
+        });
+      }
 
       if (memberships.length === 0) {
-        window.location.href = `${AUTH_BASE_URL}/login`;
+        window.location.href = `${AUTH_BASE_URL}/onboarding`;
         return;
       }
 
