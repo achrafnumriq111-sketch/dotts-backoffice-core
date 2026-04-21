@@ -14,7 +14,7 @@ import { useAvailabilityExceptions, type AvailabilityException } from "@/hooks/u
 import { WeekPatternEditor } from "@/components/availability/WeekPatternEditor";
 import { ExceptionDialog } from "@/components/availability/ExceptionDialog";
 import { supabase } from "@/integrations/supabase/client";
-import { addDays, toIsoDate, trimTime } from "@/lib/dateNl";
+import { toIsoDate, trimTime } from "@/lib/dateNl";
 
 function NotLinked() {
   return (

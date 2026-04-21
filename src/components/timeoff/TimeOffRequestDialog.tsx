@@ -67,6 +67,7 @@ export function TimeOffRequestDialog({ open, onOpenChange, employeeId }: Props) 
       toast.success("Verlofaanvraag ingediend");
       qc.invalidateQueries({ queryKey: ["my_time_off", employeeId] });
       qc.invalidateQueries({ queryKey: ["pending_time_off"] });
+      qc.invalidateQueries({ queryKey: ["timeoff-pending-count"] });
       onOpenChange(false);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Niet gelukt");

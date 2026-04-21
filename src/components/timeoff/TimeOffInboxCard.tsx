@@ -43,6 +43,7 @@ export function TimeOffInboxCard({ request }: Props) {
       qc.invalidateQueries({ queryKey: ["pending_time_off"] });
       qc.invalidateQueries({ queryKey: ["time_off_history"] });
       qc.invalidateQueries({ queryKey: ["team_availability"] });
+      qc.invalidateQueries({ queryKey: ["timeoff-pending-count"] });
       setDecision(null);
       setNote("");
     } catch (e) {

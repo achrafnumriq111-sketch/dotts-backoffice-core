@@ -8,14 +8,17 @@ import {
   Users,
   Settings,
   CreditCard,
+  UserCircle,
 } from "lucide-react";
 import { useLocation } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
 import { NavLink } from "@/components/NavLink";
 import {
   Sidebar,
   SidebarContent,
   SidebarGroup,
   SidebarGroupContent,
+  SidebarGroupLabel,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
@@ -23,6 +26,9 @@ import {
 } from "@/components/ui/sidebar";
 import { t } from "@/lib/i18n";
 import { DottsLogo } from "./DottsLogo";
+import { useOrg } from "@/context/OrgContext";
+import { useTeamPermissions } from "@/hooks/useTeamPermissions";
+import { supabase } from "@/integrations/supabase/client";
 
 const items = [
   { titleKey: "dashboard", url: "/dashboard", icon: Home, end: true },
@@ -41,12 +47,43 @@ const productsSubItems = [
   { titleKey: "productsModifierGroups", url: "/producten/modifier-groepen", end: true },
 ] as const;
 
+const teamSubItems = [
+  { label: "Medewerkers", url: "/team", end: true, adminOnly: false },
+  { label: "Beschikbaarheid", url: "/team/beschikbaarheid", end: true, adminOnly: true },
+  { label: "Verlof", url: "/team/verlof", end: true, adminOnly: true, badge: "pending" as const },
+] as const;
+
+const myItems = [
+  { label: "Beschikbaarheid", url: "/mijn/beschikbaarheid", end: true },
+  { label: "Verlof", url: "/mijn/verlof", end: true },
+] as const;
+
 export function AppSidebar() {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
   const tr = t();
   const location = useLocation();
   const inProducts = location.pathname.startsWith("/producten");
+  const inTeam = location.pathname.startsWith("/team");
+  const inMijn = location.pathname.startsWith("/mijn");
+
+  const { currentOrg } = useOrg();
+  const { canReviewTimeOff, myEmployeeId } = useTeamPermissions();
+  const orgId = currentOrg?.id;
+
+  const { data: pendingCount = 0 } = useQuery({
+    queryKey: ["timeoff-pending-count", orgId],
+    enabled: !!orgId && canReviewTimeOff,
+    refetchInterval: 60_000,
+    queryFn: async () => {
+      const { count } = await supabase
+        .from("time_off_requests")
+        .select("id", { count: "exact", head: true })
+        .eq("org_id", orgId!)
+        .eq("status", "pending");
+      return count ?? 0;
+    },
+  });
 
   return (
     <Sidebar collapsible="icon" className="border-r border-sidebar-border">
@@ -99,11 +136,74 @@ export function AppSidebar() {
                       ))}
                     </SidebarMenu>
                   )}
+
+                  {item.titleKey === "team" && inTeam && !collapsed && (
+                    <SidebarMenu className="ml-7 mt-1 border-l border-sidebar-border pl-2">
+                      {teamSubItems
+                        .filter((sub) => !sub.adminOnly || canReviewTimeOff)
+                        .map((sub) => (
+                          <SidebarMenuItem key={sub.url}>
+                            <NavLink
+                              to={sub.url}
+                              end={sub.end}
+                              className="flex items-center justify-between gap-2 rounded-md px-2 py-1.5 text-xs text-sidebar-foreground/70 transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                              activeClassName="bg-sidebar-accent text-sidebar-accent-foreground font-medium"
+                            >
+                              <span className="truncate">{sub.label}</span>
+                              {"badge" in sub && sub.badge === "pending" && pendingCount > 0 && (
+                                <span className="ml-auto inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-semibold text-primary-foreground">
+                                  {pendingCount}
+                                </span>
+                              )}
+                            </NavLink>
+                          </SidebarMenuItem>
+                        ))}
+                    </SidebarMenu>
+                  )}
                 </SidebarMenuItem>
               ))}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
+
+        {myEmployeeId && (
+          <SidebarGroup>
+            {!collapsed && <SidebarGroupLabel>Mijn</SidebarGroupLabel>}
+            <SidebarGroupContent>
+              <SidebarMenu>
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild tooltip="Mijn">
+                    <NavLink
+                      to="/mijn/beschikbaarheid"
+                      className="flex items-center gap-3 rounded-md px-2 py-2 text-sm text-sidebar-foreground transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                      activeClassName="bg-sidebar-accent text-sidebar-accent-foreground font-medium"
+                    >
+                      <UserCircle className="h-4 w-4 shrink-0" />
+                      {!collapsed && <span className="truncate">Mijn</span>}
+                    </NavLink>
+                  </SidebarMenuButton>
+
+                  {inMijn && !collapsed && (
+                    <SidebarMenu className="ml-7 mt-1 border-l border-sidebar-border pl-2">
+                      {myItems.map((sub) => (
+                        <SidebarMenuItem key={sub.url}>
+                          <NavLink
+                            to={sub.url}
+                            end={sub.end}
+                            className="block rounded-md px-2 py-1.5 text-xs text-sidebar-foreground/70 transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                            activeClassName="bg-sidebar-accent text-sidebar-accent-foreground font-medium"
+                          >
+                            {sub.label}
+                          </NavLink>
+                        </SidebarMenuItem>
+                      ))}
+                    </SidebarMenu>
+                  )}
+                </SidebarMenuItem>
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
       </SidebarContent>
     </Sidebar>
   );
