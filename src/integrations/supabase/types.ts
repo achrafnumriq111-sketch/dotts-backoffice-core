@@ -434,45 +434,93 @@ export type Database = {
       organizations: {
         Row: {
           address: string | null
+          city: string | null
           country: string | null
           created_at: string | null
+          email: string | null
           id: string
+          kvk_number: string | null
+          legal_name: string | null
+          logo_url: string | null
           name: string
           phone: string | null
+          postal_code: string | null
+          primary_color: string | null
+          receipt_footer: string | null
+          receipt_header: string | null
+          receipt_show_address: boolean | null
+          receipt_show_contact: boolean | null
+          receipt_show_kvk: boolean | null
+          receipt_show_logo: boolean | null
+          receipt_show_vat_number: boolean | null
           slug: string
+          street: string | null
           stripe_customer_id: string | null
           subscription_status: string | null
           trial_ends_at: string | null
           updated_at: string | null
           vat_number: string | null
+          website: string | null
         }
         Insert: {
           address?: string | null
+          city?: string | null
           country?: string | null
           created_at?: string | null
+          email?: string | null
           id?: string
+          kvk_number?: string | null
+          legal_name?: string | null
+          logo_url?: string | null
           name: string
           phone?: string | null
+          postal_code?: string | null
+          primary_color?: string | null
+          receipt_footer?: string | null
+          receipt_header?: string | null
+          receipt_show_address?: boolean | null
+          receipt_show_contact?: boolean | null
+          receipt_show_kvk?: boolean | null
+          receipt_show_logo?: boolean | null
+          receipt_show_vat_number?: boolean | null
           slug: string
+          street?: string | null
           stripe_customer_id?: string | null
           subscription_status?: string | null
           trial_ends_at?: string | null
           updated_at?: string | null
           vat_number?: string | null
+          website?: string | null
         }
         Update: {
           address?: string | null
+          city?: string | null
           country?: string | null
           created_at?: string | null
+          email?: string | null
           id?: string
+          kvk_number?: string | null
+          legal_name?: string | null
+          logo_url?: string | null
           name?: string
           phone?: string | null
+          postal_code?: string | null
+          primary_color?: string | null
+          receipt_footer?: string | null
+          receipt_header?: string | null
+          receipt_show_address?: boolean | null
+          receipt_show_contact?: boolean | null
+          receipt_show_kvk?: boolean | null
+          receipt_show_logo?: boolean | null
+          receipt_show_vat_number?: boolean | null
           slug?: string
+          street?: string | null
           stripe_customer_id?: string | null
           subscription_status?: string | null
           trial_ends_at?: string | null
           updated_at?: string | null
           vat_number?: string | null
+          website?: string | null
         }
         Relationships: []
       }

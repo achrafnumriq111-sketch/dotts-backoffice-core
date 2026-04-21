@@ -70,9 +70,8 @@ function aggregateTax(cart: CartLine[]): {
 }
 
 export default function Register() {
-  const { currentOrg } = useOrg();
+  const { currentOrg, currentOrgFull } = useOrg();
   const orgId = currentOrg?.id ?? null;
-  const orgName = currentOrg?.name ?? null;
 
   const [loading, setLoading] = useState(true);
   const [products, setProducts] = useState<CatalogProduct[]>([]);
@@ -577,7 +576,7 @@ export default function Register() {
       <ReceiptModal
         open={receiptOpen}
         data={receipt}
-        orgName={orgName}
+        org={currentOrgFull}
         onClose={closeReceipt}
         onNewOrder={newOrderFromReceipt}
       />

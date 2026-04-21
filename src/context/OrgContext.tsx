@@ -10,7 +10,7 @@ import {
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./AuthContext";
-import type { Database } from "@/integrations/supabase/types";
+import type { Database, Tables } from "@/integrations/supabase/types";
 
 const STORAGE_KEY = "dotts.currentOrgId";
 const AUTH_BASE_URL = "https://auth.mydotts.nl";
@@ -27,12 +27,16 @@ export interface OrgMembership {
   };
 }
 
+export type OrgFull = Tables<"organizations">;
+
 interface OrgContextValue {
   orgs: OrgMembership[];
   currentOrg: OrgMembership["organization"] | null;
   currentRole: OrgRole | null;
+  currentOrgFull: OrgFull | null;
   loading: boolean;
   switchOrg: (orgId: string) => void;
+  refetchOrg: () => Promise<void>;
 }
 
 const OrgContext = createContext<OrgContextValue | undefined>(undefined);
@@ -42,6 +46,7 @@ export function OrgProvider({ children }: { children: ReactNode }) {
   const [orgs, setOrgs] = useState<OrgMembership[]>([]);
   const [currentOrgId, setCurrentOrgId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [currentOrgFull, setCurrentOrgFull] = useState<OrgFull | null>(null);
 
   useEffect(() => {
     if (authLoading) return;
@@ -130,16 +135,52 @@ export function OrgProvider({ children }: { children: ReactNode }) {
     [orgs],
   );
 
+  const refetchOrg = useCallback(async () => {
+    if (!currentOrgId) return;
+    const { data, error } = await supabase
+      .from("organizations")
+      .select("*")
+      .eq("id", currentOrgId)
+      .maybeSingle();
+    if (!error && data) setCurrentOrgFull(data as OrgFull);
+  }, [currentOrgId]);
+
+  useEffect(() => {
+    if (!currentOrgId) {
+      setCurrentOrgFull(null);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      const { data, error } = await supabase
+        .from("organizations")
+        .select("*")
+        .eq("id", currentOrgId)
+        .maybeSingle();
+      if (cancelled) return;
+      if (error) {
+        console.error("org full load failed", error);
+        return;
+      }
+      setCurrentOrgFull((data as OrgFull) ?? null);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [currentOrgId]);
+
   const value = useMemo<OrgContextValue>(() => {
     const current = orgs.find((m) => m.org_id === currentOrgId) ?? null;
     return {
       orgs,
       currentOrg: current?.organization ?? null,
       currentRole: current?.role ?? null,
+      currentOrgFull,
       loading,
       switchOrg,
+      refetchOrg,
     };
-  }, [orgs, currentOrgId, loading, switchOrg]);
+  }, [orgs, currentOrgId, loading, switchOrg, currentOrgFull, refetchOrg]);
 
   return <OrgContext.Provider value={value}>{children}</OrgContext.Provider>;
 }
