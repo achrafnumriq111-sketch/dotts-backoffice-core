@@ -8,14 +8,17 @@ import {
   Users,
   Settings,
   CreditCard,
+  UserCircle,
 } from "lucide-react";
 import { useLocation } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
 import { NavLink } from "@/components/NavLink";
 import {
   Sidebar,
   SidebarContent,
   SidebarGroup,
   SidebarGroupContent,
+  SidebarGroupLabel,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
@@ -23,6 +26,9 @@ import {
 } from "@/components/ui/sidebar";
 import { t } from "@/lib/i18n";
 import { DottsLogo } from "./DottsLogo";
+import { useOrg } from "@/context/OrgContext";
+import { useTeamPermissions } from "@/hooks/useTeamPermissions";
+import { supabase } from "@/integrations/supabase/client";
 
 const items = [
   { titleKey: "dashboard", url: "/dashboard", icon: Home, end: true },
@@ -39,6 +45,17 @@ const items = [
 const productsSubItems = [
   { titleKey: "productsAll", url: "/producten", end: true },
   { titleKey: "productsModifierGroups", url: "/producten/modifier-groepen", end: true },
+] as const;
+
+const teamSubItems = [
+  { label: "Medewerkers", url: "/team", end: true, adminOnly: false },
+  { label: "Beschikbaarheid", url: "/team/beschikbaarheid", end: true, adminOnly: true },
+  { label: "Verlof", url: "/team/verlof", end: true, adminOnly: true, badge: "pending" as const },
+] as const;
+
+const myItems = [
+  { label: "Beschikbaarheid", url: "/mijn/beschikbaarheid", end: true },
+  { label: "Verlof", url: "/mijn/verlof", end: true },
 ] as const;
 
 export function AppSidebar() {
