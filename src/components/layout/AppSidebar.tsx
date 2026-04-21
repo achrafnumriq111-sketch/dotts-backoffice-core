@@ -31,7 +31,7 @@ const items = [
   { titleKey: "sales", url: "/verkopen", icon: Receipt, end: true },
   { titleKey: "closing", url: "/kasafsluiting", icon: Calculator, end: true },
   { titleKey: "locations", url: "/locaties", icon: MapPin, end: true },
-  { titleKey: "team", url: "/team", icon: Users, end: true },
+  { titleKey: "team", url: "/team", icon: Users, end: false },
   { titleKey: "settings", url: "/instellingen", icon: Settings, end: true },
   { titleKey: "subscription", url: "/abonnement", icon: CreditCard, end: true },
 ] as const;
