@@ -1,5 +1,4 @@
 import { isoDow, toIsoDate } from "./dateNl";
-import type { Tables } from "@/integrations/supabase/types";
 
 export type Conflict = "none" | "soft" | "hard";
 
@@ -9,9 +8,9 @@ export interface ShiftLike {
 }
 
 export interface EmployeeContext {
-  patterns: Pick<Tables<"availability_patterns">, "day_of_week" | "start_time" | "end_time" | "is_available">[];
-  exceptions: Pick<Tables<"availability_exceptions">, "on_date" | "start_time" | "end_time" | "is_available">[];
-  timeOff: Pick<Tables<"time_off_requests">, "start_date" | "end_date" | "status">[];
+  patterns: { day_of_week: number; start_time: string; end_time: string; is_available: boolean }[];
+  exceptions: { on_date: string; start_time: string | null; end_time: string | null; is_available: boolean }[];
+  timeOff: { start_date: string; end_date: string; status: string }[];
 }
 
 function timeStrToMin(t: string): number {
