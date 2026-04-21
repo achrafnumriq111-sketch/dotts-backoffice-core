@@ -17,6 +17,7 @@ import Sales from "./pages/Sales";
 import Closing from "./pages/Closing";
 import Locations from "./pages/Locations";
 import Team from "./pages/Team";
+import EmployeeDetail from "./pages/EmployeeDetail";
 import SettingsPage from "./pages/Settings";
 import Subscription from "./pages/Subscription";
 import NotFound from "./pages/NotFound";
@@ -44,6 +45,7 @@ const App = () => (
                     <Route path="/kasafsluiting" element={<Closing />} />
                     <Route path="/locaties" element={<Locations />} />
                     <Route path="/team" element={<Team />} />
+                    <Route path="/team/:employeeId" element={<EmployeeDetail />} />
                     <Route path="/instellingen" element={<SettingsPage />} />
                     <Route path="/abonnement" element={<Subscription />} />
                     <Route path="*" element={<NotFound />} />

@@ -32,6 +32,138 @@ export type Database = {
         }
         Relationships: []
       }
+      employee_private: {
+        Row: {
+          birthdate: string | null
+          bsn: string | null
+          created_at: string
+          emergency_contact_name: string | null
+          emergency_contact_phone: string | null
+          employee_id: string
+          hourly_wage_cents: number | null
+          iban: string | null
+          org_id: string
+          updated_at: string
+        }
+        Insert: {
+          birthdate?: string | null
+          bsn?: string | null
+          created_at?: string
+          emergency_contact_name?: string | null
+          emergency_contact_phone?: string | null
+          employee_id: string
+          hourly_wage_cents?: number | null
+          iban?: string | null
+          org_id: string
+          updated_at?: string
+        }
+        Update: {
+          birthdate?: string | null
+          bsn?: string | null
+          created_at?: string
+          emergency_contact_name?: string | null
+          emergency_contact_phone?: string | null
+          employee_id?: string
+          hourly_wage_cents?: number | null
+          iban?: string | null
+          org_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employee_private_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: true
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_private_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      employees: {
+        Row: {
+          contract_hours_per_week: number | null
+          created_at: string
+          created_by: string | null
+          display_name: string | null
+          email: string | null
+          employment_type: Database["public"]["Enums"]["employment_type"]
+          end_date: string | null
+          first_name: string
+          id: string
+          is_active: boolean
+          last_name: string
+          notes: string | null
+          org_id: string
+          phone: string | null
+          position_id: string | null
+          start_date: string | null
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          contract_hours_per_week?: number | null
+          created_at?: string
+          created_by?: string | null
+          display_name?: string | null
+          email?: string | null
+          employment_type?: Database["public"]["Enums"]["employment_type"]
+          end_date?: string | null
+          first_name: string
+          id?: string
+          is_active?: boolean
+          last_name: string
+          notes?: string | null
+          org_id: string
+          phone?: string | null
+          position_id?: string | null
+          start_date?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          contract_hours_per_week?: number | null
+          created_at?: string
+          created_by?: string | null
+          display_name?: string | null
+          email?: string | null
+          employment_type?: Database["public"]["Enums"]["employment_type"]
+          end_date?: string | null
+          first_name?: string
+          id?: string
+          is_active?: boolean
+          last_name?: string
+          notes?: string | null
+          org_id?: string
+          phone?: string | null
+          position_id?: string | null
+          start_date?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employees_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employees_position_id_fkey"
+            columns: ["position_id"]
+            isOneToOne: false
+            referencedRelation: "positions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       invoices: {
         Row: {
           amount_cents: number
@@ -604,6 +736,50 @@ export type Database = {
         }
         Relationships: []
       }
+      positions: {
+        Row: {
+          color: string | null
+          created_at: string
+          default_hourly_wage_cents: number | null
+          id: string
+          is_active: boolean
+          name: string
+          org_id: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          color?: string | null
+          created_at?: string
+          default_hourly_wage_cents?: number | null
+          id?: string
+          is_active?: boolean
+          name: string
+          org_id: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          color?: string | null
+          created_at?: string
+          default_hourly_wage_cents?: number | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          org_id?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "positions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       product_categories: {
         Row: {
           color: string | null
@@ -1128,6 +1304,51 @@ export type Database = {
           },
         ]
       }
+      sensitive_data_access_log: {
+        Row: {
+          action: string
+          actor_user_id: string | null
+          at: string
+          employee_id: string | null
+          fields_changed: string[] | null
+          id: string
+          org_id: string
+        }
+        Insert: {
+          action: string
+          actor_user_id?: string | null
+          at?: string
+          employee_id?: string | null
+          fields_changed?: string[] | null
+          id?: string
+          org_id: string
+        }
+        Update: {
+          action?: string
+          actor_user_id?: string | null
+          at?: string
+          employee_id?: string | null
+          fields_changed?: string[] | null
+          id?: string
+          org_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sensitive_data_access_log_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sensitive_data_access_log_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       subscriptions: {
         Row: {
           billing_cycle: string
@@ -1255,6 +1476,28 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      add_employee: {
+        Args: {
+          p_birthdate?: string
+          p_bsn?: string
+          p_contract_hours_per_week?: number
+          p_email?: string
+          p_emergency_contact_name?: string
+          p_emergency_contact_phone?: string
+          p_employment_type?: Database["public"]["Enums"]["employment_type"]
+          p_first_name: string
+          p_hourly_wage_cents?: number
+          p_iban?: string
+          p_last_name: string
+          p_notes?: string
+          p_org_id: string
+          p_phone?: string
+          p_position_id?: string
+          p_start_date?: string
+        }
+        Returns: string
+      }
+      archive_employee: { Args: { p_employee_id: string }; Returns: undefined }
       close_register_session: {
         Args: {
           p_counted_cash_cents: number
@@ -1289,6 +1532,46 @@ export type Database = {
       }
       org_is_locked: { Args: { p_org_id: string }; Returns: boolean }
       process_overdue_invoices: { Args: never; Returns: undefined }
+      update_employee: {
+        Args: {
+          p_contract_hours_per_week?: number
+          p_email?: string
+          p_employee_id: string
+          p_employment_type?: Database["public"]["Enums"]["employment_type"]
+          p_end_date?: string
+          p_first_name: string
+          p_is_active?: boolean
+          p_last_name: string
+          p_notes?: string
+          p_phone?: string
+          p_position_id?: string
+          p_start_date?: string
+        }
+        Returns: undefined
+      }
+      update_employee_sensitive: {
+        Args: {
+          p_birthdate?: string
+          p_bsn?: string
+          p_emergency_contact_name?: string
+          p_emergency_contact_phone?: string
+          p_employee_id: string
+          p_hourly_wage_cents?: number
+          p_iban?: string
+        }
+        Returns: undefined
+      }
+      upsert_position: {
+        Args: {
+          p_color?: string
+          p_default_hourly_wage_cents?: number
+          p_id?: string
+          p_name: string
+          p_org_id: string
+          p_sort_order?: number
+        }
+        Returns: string
+      }
       user_org_ids: {
         Args: never
         Returns: {
@@ -1297,6 +1580,7 @@ export type Database = {
       }
     }
     Enums: {
+      employment_type: "vast" | "flex" | "oproep" | "stagiair" | "zzp"
       org_role: "owner" | "admin" | "manager" | "staff"
     }
     CompositeTypes: {
@@ -1425,6 +1709,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      employment_type: ["vast", "flex", "oproep", "stagiair", "zzp"],
       org_role: ["owner", "admin", "manager", "staff"],
     },
   },
