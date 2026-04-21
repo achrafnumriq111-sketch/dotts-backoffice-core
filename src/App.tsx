@@ -22,6 +22,8 @@ import MijnBeschikbaarheid from "./pages/mijn/Beschikbaarheid";
 import MijnVerlof from "./pages/mijn/Verlof";
 import TeamBeschikbaarheid from "./pages/team/Beschikbaarheid";
 import TeamVerlof from "./pages/team/Verlof";
+import TeamRoosters from "./pages/team/Roosters";
+import MijnRooster from "./pages/mijn/Rooster";
 import SettingsPage from "./pages/Settings";
 import Subscription from "./pages/Subscription";
 import NotFound from "./pages/NotFound";
@@ -52,8 +54,10 @@ const App = () => (
                     <Route path="/team/:employeeId" element={<EmployeeDetail />} />
                     <Route path="/team/beschikbaarheid" element={<TeamBeschikbaarheid />} />
                     <Route path="/team/verlof" element={<TeamVerlof />} />
+                    <Route path="/team/roosters" element={<TeamRoosters />} />
                     <Route path="/mijn/beschikbaarheid" element={<MijnBeschikbaarheid />} />
                     <Route path="/mijn/verlof" element={<MijnVerlof />} />
+                    <Route path="/mijn/rooster" element={<MijnRooster />} />
                     <Route path="/instellingen" element={<SettingsPage />} />
                     <Route path="/abonnement" element={<Subscription />} />
                     <Route path="*" element={<NotFound />} />

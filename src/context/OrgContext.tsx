@@ -13,6 +13,7 @@ import { useAuth } from "./AuthContext";
 import type { Database, Tables } from "@/integrations/supabase/types";
 
 const STORAGE_KEY = "dotts.currentOrgId";
+const LOC_STORAGE_KEY = "dotts.currentLocationId";
 const AUTH_BASE_URL = "https://auth.mydotts.nl";
 
 export type OrgRole = Database["public"]["Enums"]["org_role"];
@@ -28,12 +29,16 @@ export interface OrgMembership {
 }
 
 export type OrgFull = Tables<"organizations">;
+export type LocationLite = { id: string; name: string; is_primary: boolean };
 
 interface OrgContextValue {
   orgs: OrgMembership[];
   currentOrg: OrgMembership["organization"] | null;
   currentRole: OrgRole | null;
   currentOrgFull: OrgFull | null;
+  locations: LocationLite[];
+  currentLocation: LocationLite | null;
+  setCurrentLocation: (locationId: string) => void;
   loading: boolean;
   switchOrg: (orgId: string) => void;
   refetchOrg: () => Promise<void>;
@@ -47,6 +52,8 @@ export function OrgProvider({ children }: { children: ReactNode }) {
   const [currentOrgId, setCurrentOrgId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [currentOrgFull, setCurrentOrgFull] = useState<OrgFull | null>(null);
+  const [locations, setLocations] = useState<LocationLite[]>([]);
+  const [currentLocationId, setCurrentLocationId] = useState<string | null>(null);
 
   useEffect(() => {
     if (authLoading) return;
@@ -169,18 +176,71 @@ export function OrgProvider({ children }: { children: ReactNode }) {
     };
   }, [currentOrgId]);
 
+  // Load locations whenever org changes
+  useEffect(() => {
+    if (!currentOrgId) {
+      setLocations([]);
+      setCurrentLocationId(null);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      const { data, error } = await supabase
+        .from("locations")
+        .select("id, name, is_primary")
+        .eq("org_id", currentOrgId)
+        .eq("is_active", true)
+        .order("is_primary", { ascending: false })
+        .order("name", { ascending: true });
+      if (cancelled) return;
+      if (error) {
+        console.error("locations load failed", error);
+        setLocations([]);
+        setCurrentLocationId(null);
+        return;
+      }
+      const locs = (data ?? []) as LocationLite[];
+      setLocations(locs);
+      const stored = localStorage.getItem(`${LOC_STORAGE_KEY}:${currentOrgId}`);
+      const initial =
+        stored && locs.some((l) => l.id === stored)
+          ? stored
+          : (locs.find((l) => l.is_primary)?.id ?? locs[0]?.id ?? null);
+      setCurrentLocationId(initial);
+      if (initial) localStorage.setItem(`${LOC_STORAGE_KEY}:${currentOrgId}`, initial);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [currentOrgId]);
+
+  const setCurrentLocation = useCallback(
+    (locationId: string) => {
+      if (!locations.some((l) => l.id === locationId)) return;
+      setCurrentLocationId(locationId);
+      if (currentOrgId) {
+        localStorage.setItem(`${LOC_STORAGE_KEY}:${currentOrgId}`, locationId);
+      }
+    },
+    [locations, currentOrgId],
+  );
+
   const value = useMemo<OrgContextValue>(() => {
     const current = orgs.find((m) => m.org_id === currentOrgId) ?? null;
+    const currentLocation = locations.find((l) => l.id === currentLocationId) ?? null;
     return {
       orgs,
       currentOrg: current?.organization ?? null,
       currentRole: current?.role ?? null,
       currentOrgFull,
+      locations,
+      currentLocation,
+      setCurrentLocation,
       loading,
       switchOrg,
       refetchOrg,
     };
-  }, [orgs, currentOrgId, loading, switchOrg, currentOrgFull, refetchOrg]);
+  }, [orgs, currentOrgId, loading, switchOrg, currentOrgFull, refetchOrg, locations, currentLocationId, setCurrentLocation]);
 
   return <OrgContext.Provider value={value}>{children}</OrgContext.Provider>;
 }
