@@ -483,101 +483,44 @@ export default function Sales() {
                 </div>
               </SheetHeader>
 
-              <div className="mt-4 rounded-md border border-border bg-card p-4 font-mono text-xs">
-                {detail.locations?.name && (
-                  <p className="text-center text-sm font-semibold">{detail.locations.name}</p>
-                )}
-
-                <div className="my-3 border-t border-dashed border-border" />
-
-                <ul className="space-y-2">
-                  {detail.sale_items.map((it) => {
-                    const mods = (it.modifiers ?? []) as Array<{ name: string; price_cents: number }>;
-                    return (
-                      <li key={it.id}>
-                        <div className="flex justify-between gap-2">
-                          <span className="truncate">
-                            {Number(it.quantity)}× {it.name_snapshot}
-                            {it.variant_name ? ` · ${it.variant_name}` : ""}
-                          </span>
-                          <span className="tabular-nums">
-                            {formatPriceCents(it.line_total_cents)}
-                          </span>
-                        </div>
-                        {mods.map((m, i) => (
-                          <div
-                            key={i}
-                            className="flex justify-between gap-2 pl-4 text-muted-foreground"
-                          >
-                            <span className="truncate">+ {m.name}</span>
-                            <span className="tabular-nums">
-                              {m.price_cents === 0 ? "" : formatPriceDelta(m.price_cents)}
-                            </span>
-                          </div>
-                        ))}
-                      </li>
-                    );
-                  })}
-                </ul>
-
-                <div className="my-3 border-t border-dashed border-border" />
-
-                <div className="space-y-1">
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Subtotaal (excl. BTW)</span>
-                    <span className="tabular-nums">{formatPriceCents(detail.subtotal_cents)}</span>
-                  </div>
-                  {Object.entries(
+              <div className="mt-4 flex justify-center">
+                {(() => {
+                  const taxByRate = Object.entries(
                     detail.sale_items.reduce<Record<number, number>>((acc, it) => {
                       acc[it.tax_rate_bps_snapshot] =
                         (acc[it.tax_rate_bps_snapshot] ?? 0) + it.line_tax_cents;
                       return acc;
                     }, {}),
-                  ).map(([bps, vat]) => (
-                    <div key={bps} className="flex justify-between">
-                      <span className="text-muted-foreground">
-                        BTW {(Number(bps) / 100).toFixed(0)}%
-                      </span>
-                      <span className="tabular-nums">{formatPriceCents(vat)}</span>
-                    </div>
-                  ))}
-                </div>
-
-                <div className="my-2 border-t-2 border-foreground" />
-
-                <div className="flex justify-between text-sm font-bold">
-                  <span>Totaal</span>
-                  <span className="tabular-nums">{formatPriceCents(detail.total_cents)}</span>
-                </div>
-
-                <div className="my-3 border-t border-dashed border-border" />
-
-                {detail.payments.map((p) => (
-                  <div key={p.id} className="space-y-1">
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">
-                        Betaald met {paymentLabel(p.method)}
-                      </span>
-                      <span className="tabular-nums">{formatPriceCents(p.amount_cents)}</span>
-                    </div>
-                    {p.method === "cash" && (
-                      <>
-                        <div className="flex justify-between">
-                          <span className="text-muted-foreground">Ontvangen</span>
-                          <span className="tabular-nums">
-                            {formatPriceCents(p.tendered_cents ?? 0)}
-                          </span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-muted-foreground">Wisselgeld</span>
-                          <span className="tabular-nums">
-                            {formatPriceCents(p.change_cents ?? 0)}
-                          </span>
-                        </div>
-                      </>
-                    )}
-                  </div>
-                ))}
+                  ).map(([bps, vat]) => ({
+                    rate_bps: Number(bps),
+                    vat_cents: vat,
+                  }));
+                  const firstPayment = detail.payments[0];
+                  const sale: ReceiptSale = {
+                    receipt_number: detail.receipt_number,
+                    created_at: detail.created_at,
+                    subtotal_cents: detail.subtotal_cents,
+                    total_cents: detail.total_cents,
+                    tax_by_rate: taxByRate,
+                    location_name: detail.locations?.name ?? null,
+                    lines: detail.sale_items.map((it) => ({
+                      key: it.id,
+                      quantity: Number(it.quantity),
+                      productName: it.name_snapshot,
+                      variantName: it.variant_name,
+                      unitPriceCents: it.price_cents_snapshot,
+                      lineTotalCents: it.line_total_cents,
+                      modifiers: (it.modifiers ?? []) as { name: string; price_cents: number }[],
+                    })),
+                    payment: {
+                      method: (firstPayment?.method as "cash" | "pin") ?? "pin",
+                      amount_cents: firstPayment?.amount_cents ?? detail.total_cents,
+                      tendered_cents: firstPayment?.tendered_cents,
+                      change_cents: firstPayment?.change_cents,
+                    },
+                  };
+                  return <ReceiptView org={currentOrgFull} sale={sale} className="w-full" />;
+                })()}
               </div>
 
               <SheetFooter className="mt-4 flex-row justify-end gap-2 sm:space-x-0">
