@@ -49,6 +49,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useOrg } from "@/context/OrgContext";
 import { formatPriceCents, formatPriceDelta } from "@/lib/eur";
+import { ReceiptView, type ReceiptSale } from "@/components/receipt/ReceiptView";
 
 type DateRangeKey = "today" | "yesterday" | "week" | "month" | "custom";
 type PaymentFilter = "all" | "cash" | "pin";
@@ -155,7 +156,7 @@ function statusBadge(status: string) {
 }
 
 export default function Sales() {
-  const { currentOrg } = useOrg();
+  const { currentOrg, currentOrgFull } = useOrg();
 
   const [rangeKey, setRangeKey] = useState<DateRangeKey>("today");
   const [customFrom, setCustomFrom] = useState<string>("");
