@@ -14,6 +14,114 @@ export type Database = {
   }
   public: {
     Tables: {
+      availability_exceptions: {
+        Row: {
+          created_at: string
+          employee_id: string
+          end_time: string | null
+          id: string
+          is_available: boolean
+          on_date: string
+          org_id: string
+          reason: string | null
+          start_time: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          employee_id: string
+          end_time?: string | null
+          id?: string
+          is_available?: boolean
+          on_date: string
+          org_id: string
+          reason?: string | null
+          start_time?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          employee_id?: string
+          end_time?: string | null
+          id?: string
+          is_available?: boolean
+          on_date?: string
+          org_id?: string
+          reason?: string | null
+          start_time?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "availability_exceptions_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "availability_exceptions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      availability_patterns: {
+        Row: {
+          created_at: string
+          day_of_week: number
+          employee_id: string
+          end_time: string
+          id: string
+          is_available: boolean
+          notes: string | null
+          org_id: string
+          start_time: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          day_of_week: number
+          employee_id: string
+          end_time: string
+          id?: string
+          is_available?: boolean
+          notes?: string | null
+          org_id: string
+          start_time: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          day_of_week?: number
+          employee_id?: string
+          end_time?: string
+          id?: string
+          is_available?: boolean
+          notes?: string | null
+          org_id?: string
+          start_time?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "availability_patterns_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "availability_patterns_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       dotts_admins: {
         Row: {
           created_at: string
@@ -1471,6 +1579,75 @@ export type Database = {
           },
         ]
       }
+      time_off_requests: {
+        Row: {
+          created_at: string
+          decided_at: string | null
+          decided_by: string | null
+          decision_note: string | null
+          employee_id: string
+          end_date: string
+          id: string
+          note: string | null
+          org_id: string
+          requested_at: string
+          requested_by: string | null
+          start_date: string
+          status: Database["public"]["Enums"]["time_off_status"]
+          type: Database["public"]["Enums"]["time_off_type"]
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          decision_note?: string | null
+          employee_id: string
+          end_date: string
+          id?: string
+          note?: string | null
+          org_id: string
+          requested_at?: string
+          requested_by?: string | null
+          start_date: string
+          status?: Database["public"]["Enums"]["time_off_status"]
+          type: Database["public"]["Enums"]["time_off_type"]
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          decision_note?: string | null
+          employee_id?: string
+          end_date?: string
+          id?: string
+          note?: string | null
+          org_id?: string
+          requested_at?: string
+          requested_by?: string | null
+          start_date?: string
+          status?: Database["public"]["Enums"]["time_off_status"]
+          type?: Database["public"]["Enums"]["time_off_type"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "time_off_requests_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "time_off_requests_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -1498,6 +1675,7 @@ export type Database = {
         Returns: string
       }
       archive_employee: { Args: { p_employee_id: string }; Returns: undefined }
+      cancel_time_off: { Args: { p_request_id: string }; Returns: undefined }
       close_register_session: {
         Args: {
           p_counted_cash_cents: number
@@ -1524,7 +1702,24 @@ export type Database = {
         }
         Returns: Json
       }
+      decide_time_off: {
+        Args: {
+          p_decision: Database["public"]["Enums"]["time_off_status"]
+          p_decision_note?: string
+          p_request_id: string
+        }
+        Returns: undefined
+      }
+      delete_availability_exception: {
+        Args: { p_id: string }
+        Returns: undefined
+      }
+      delete_availability_pattern: {
+        Args: { p_id: string }
+        Returns: undefined
+      }
       is_dotts_admin: { Args: never; Returns: boolean }
+      my_employee_id: { Args: { p_org_id: string }; Returns: string }
       next_receipt_number: { Args: { p_org_id: string }; Returns: string }
       open_register_session: {
         Args: { p_location_id: string; p_opening_float_cents: number }
@@ -1532,6 +1727,16 @@ export type Database = {
       }
       org_is_locked: { Args: { p_org_id: string }; Returns: boolean }
       process_overdue_invoices: { Args: never; Returns: undefined }
+      request_time_off: {
+        Args: {
+          p_employee_id: string
+          p_end_date: string
+          p_note?: string
+          p_start_date: string
+          p_type: Database["public"]["Enums"]["time_off_type"]
+        }
+        Returns: string
+      }
       update_employee: {
         Args: {
           p_contract_hours_per_week?: number
@@ -1561,6 +1766,30 @@ export type Database = {
         }
         Returns: undefined
       }
+      upsert_availability_exception: {
+        Args: {
+          p_employee_id: string
+          p_end_time?: string
+          p_id?: string
+          p_is_available?: boolean
+          p_on_date: string
+          p_reason?: string
+          p_start_time?: string
+        }
+        Returns: string
+      }
+      upsert_availability_pattern: {
+        Args: {
+          p_day_of_week: number
+          p_employee_id: string
+          p_end_time: string
+          p_id?: string
+          p_is_available?: boolean
+          p_notes?: string
+          p_start_time: string
+        }
+        Returns: string
+      }
       upsert_position: {
         Args: {
           p_color?: string
@@ -1582,6 +1811,13 @@ export type Database = {
     Enums: {
       employment_type: "vast" | "flex" | "oproep" | "stagiair" | "zzp"
       org_role: "owner" | "admin" | "manager" | "staff"
+      time_off_status: "pending" | "approved" | "rejected" | "cancelled"
+      time_off_type:
+        | "vakantie"
+        | "ziekte"
+        | "bijzonder"
+        | "onbetaald"
+        | "overig"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1711,6 +1947,8 @@ export const Constants = {
     Enums: {
       employment_type: ["vast", "flex", "oproep", "stagiair", "zzp"],
       org_role: ["owner", "admin", "manager", "staff"],
+      time_off_status: ["pending", "approved", "rejected", "cancelled"],
+      time_off_type: ["vakantie", "ziekte", "bijzonder", "onbetaald", "overig"],
     },
   },
 } as const
