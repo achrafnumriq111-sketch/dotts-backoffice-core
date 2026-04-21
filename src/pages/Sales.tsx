@@ -48,7 +48,7 @@ import {
 
 import { supabase } from "@/integrations/supabase/client";
 import { useOrg } from "@/context/OrgContext";
-import { formatPriceCents, formatPriceDelta } from "@/lib/eur";
+import { formatPriceCents } from "@/lib/eur";
 import { ReceiptView, type ReceiptSale } from "@/components/receipt/ReceiptView";
 
 type DateRangeKey = "today" | "yesterday" | "week" | "month" | "custom";
