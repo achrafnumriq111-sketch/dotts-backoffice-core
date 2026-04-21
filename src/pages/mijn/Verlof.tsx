@@ -51,6 +51,7 @@ export default function MijnVerlof() {
     toast.success("Aanvraag geannuleerd");
     qc.invalidateQueries({ queryKey: ["my_time_off", myEmployeeId] });
     qc.invalidateQueries({ queryKey: ["pending_time_off"] });
+    qc.invalidateQueries({ queryKey: ["timeoff-pending-count"] });
   }
 
   return (
