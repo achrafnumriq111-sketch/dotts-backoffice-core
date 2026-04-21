@@ -18,6 +18,10 @@ import Closing from "./pages/Closing";
 import Locations from "./pages/Locations";
 import Team from "./pages/Team";
 import EmployeeDetail from "./pages/EmployeeDetail";
+import MijnBeschikbaarheid from "./pages/mijn/Beschikbaarheid";
+import MijnVerlof from "./pages/mijn/Verlof";
+import TeamBeschikbaarheid from "./pages/team/Beschikbaarheid";
+import TeamVerlof from "./pages/team/Verlof";
 import SettingsPage from "./pages/Settings";
 import Subscription from "./pages/Subscription";
 import NotFound from "./pages/NotFound";
@@ -46,6 +50,10 @@ const App = () => (
                     <Route path="/locaties" element={<Locations />} />
                     <Route path="/team" element={<Team />} />
                     <Route path="/team/:employeeId" element={<EmployeeDetail />} />
+                    <Route path="/team/beschikbaarheid" element={<TeamBeschikbaarheid />} />
+                    <Route path="/team/verlof" element={<TeamVerlof />} />
+                    <Route path="/mijn/beschikbaarheid" element={<MijnBeschikbaarheid />} />
+                    <Route path="/mijn/verlof" element={<MijnVerlof />} />
                     <Route path="/instellingen" element={<SettingsPage />} />
                     <Route path="/abonnement" element={<Subscription />} />
                     <Route path="*" element={<NotFound />} />
