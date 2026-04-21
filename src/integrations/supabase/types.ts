@@ -848,6 +848,84 @@ export type Database = {
           },
         ]
       }
+      register_sessions: {
+        Row: {
+          cash_sales_cents: number | null
+          closed_at: string | null
+          closed_by: string | null
+          counted_cash_cents: number | null
+          created_at: string
+          expected_cash_cents: number | null
+          id: string
+          location_id: string
+          notes: string | null
+          opened_at: string
+          opened_by: string
+          opening_float_cents: number
+          org_id: string
+          pin_sales_cents: number | null
+          sale_count: number | null
+          status: string
+          total_sales_cents: number | null
+          variance_cents: number | null
+        }
+        Insert: {
+          cash_sales_cents?: number | null
+          closed_at?: string | null
+          closed_by?: string | null
+          counted_cash_cents?: number | null
+          created_at?: string
+          expected_cash_cents?: number | null
+          id?: string
+          location_id: string
+          notes?: string | null
+          opened_at?: string
+          opened_by: string
+          opening_float_cents: number
+          org_id: string
+          pin_sales_cents?: number | null
+          sale_count?: number | null
+          status?: string
+          total_sales_cents?: number | null
+          variance_cents?: number | null
+        }
+        Update: {
+          cash_sales_cents?: number | null
+          closed_at?: string | null
+          closed_by?: string | null
+          counted_cash_cents?: number | null
+          created_at?: string
+          expected_cash_cents?: number | null
+          id?: string
+          location_id?: string
+          notes?: string | null
+          opened_at?: string
+          opened_by?: string
+          opening_float_cents?: number
+          org_id?: string
+          pin_sales_cents?: number | null
+          sale_count?: number | null
+          status?: string
+          total_sales_cents?: number | null
+          variance_cents?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "register_sessions_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "register_sessions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sale_items: {
         Row: {
           created_at: string
@@ -1129,6 +1207,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      close_register_session: {
+        Args: {
+          p_counted_cash_cents: number
+          p_notes?: string
+          p_session_id: string
+        }
+        Returns: Json
+      }
       create_org_with_owner: {
         Args: { p_name: string; p_slug?: string }
         Returns: string
@@ -1149,6 +1235,10 @@ export type Database = {
       }
       is_dotts_admin: { Args: never; Returns: boolean }
       next_receipt_number: { Args: { p_org_id: string }; Returns: string }
+      open_register_session: {
+        Args: { p_location_id: string; p_opening_float_cents: number }
+        Returns: string
+      }
       org_is_locked: { Args: { p_org_id: string }; Returns: boolean }
       process_overdue_invoices: { Args: never; Returns: undefined }
       user_org_ids: {
