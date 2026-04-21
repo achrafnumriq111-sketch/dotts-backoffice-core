@@ -51,11 +51,13 @@ const teamSubItems = [
   { label: "Medewerkers", url: "/team", end: true, adminOnly: false },
   { label: "Beschikbaarheid", url: "/team/beschikbaarheid", end: true, adminOnly: true },
   { label: "Verlof", url: "/team/verlof", end: true, adminOnly: true, badge: "pending" as const },
+  { label: "Roosters", url: "/team/roosters", end: true, adminOnly: true },
 ] as const;
 
 const myItems = [
   { label: "Beschikbaarheid", url: "/mijn/beschikbaarheid", end: true },
   { label: "Verlof", url: "/mijn/verlof", end: true },
+  { label: "Rooster", url: "/mijn/rooster", end: true },
 ] as const;
 
 export function AppSidebar() {
