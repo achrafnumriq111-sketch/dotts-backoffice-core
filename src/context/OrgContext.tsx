@@ -13,6 +13,7 @@ import { useAuth } from "./AuthContext";
 import type { Database, Tables } from "@/integrations/supabase/types";
 
 const STORAGE_KEY = "dotts.currentOrgId";
+const LOC_STORAGE_KEY = "dotts.currentLocationId";
 const AUTH_BASE_URL = "https://auth.mydotts.nl";
 
 export type OrgRole = Database["public"]["Enums"]["org_role"];
@@ -28,12 +29,16 @@ export interface OrgMembership {
 }
 
 export type OrgFull = Tables<"organizations">;
+export type LocationLite = { id: string; name: string; is_primary: boolean };
 
 interface OrgContextValue {
   orgs: OrgMembership[];
   currentOrg: OrgMembership["organization"] | null;
   currentRole: OrgRole | null;
   currentOrgFull: OrgFull | null;
+  locations: LocationLite[];
+  currentLocation: LocationLite | null;
+  setCurrentLocation: (locationId: string) => void;
   loading: boolean;
   switchOrg: (orgId: string) => void;
   refetchOrg: () => Promise<void>;
