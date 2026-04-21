@@ -1457,6 +1457,128 @@ export type Database = {
           },
         ]
       }
+      shift_assignments: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          employee_id: string
+          id: string
+          org_id: string
+          shift_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          employee_id: string
+          id?: string
+          org_id: string
+          shift_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          employee_id?: string
+          id?: string
+          org_id?: string
+          shift_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shift_assignments_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shift_assignments_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shift_assignments_shift_id_fkey"
+            columns: ["shift_id"]
+            isOneToOne: false
+            referencedRelation: "shifts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      shifts: {
+        Row: {
+          break_minutes: number
+          created_at: string
+          created_by: string | null
+          ends_at: string
+          id: string
+          location_id: string
+          notes: string | null
+          org_id: string
+          position_id: string | null
+          published_at: string | null
+          published_by: string | null
+          starts_at: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          break_minutes?: number
+          created_at?: string
+          created_by?: string | null
+          ends_at: string
+          id?: string
+          location_id: string
+          notes?: string | null
+          org_id: string
+          position_id?: string | null
+          published_at?: string | null
+          published_by?: string | null
+          starts_at: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          break_minutes?: number
+          created_at?: string
+          created_by?: string | null
+          ends_at?: string
+          id?: string
+          location_id?: string
+          notes?: string | null
+          org_id?: string
+          position_id?: string | null
+          published_at?: string | null
+          published_by?: string | null
+          starts_at?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shifts_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shifts_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shifts_position_id_fkey"
+            columns: ["position_id"]
+            isOneToOne: false
+            referencedRelation: "positions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       subscriptions: {
         Row: {
           billing_cycle: string
@@ -1675,6 +1797,10 @@ export type Database = {
         Returns: string
       }
       archive_employee: { Args: { p_employee_id: string }; Returns: undefined }
+      assign_shift: {
+        Args: { p_employee_id: string; p_shift_id: string }
+        Returns: string
+      }
       cancel_time_off: { Args: { p_request_id: string }; Returns: undefined }
       close_register_session: {
         Args: {
@@ -1683,6 +1809,14 @@ export type Database = {
           p_session_id: string
         }
         Returns: Json
+      }
+      copy_week: {
+        Args: {
+          p_location_id: string
+          p_source_week_start: string
+          p_target_week_start: string
+        }
+        Returns: number
       }
       create_org_with_owner: {
         Args: { p_name: string; p_slug?: string }
@@ -1702,6 +1836,17 @@ export type Database = {
         }
         Returns: Json
       }
+      create_shift: {
+        Args: {
+          p_break_minutes?: number
+          p_ends_at: string
+          p_location_id: string
+          p_notes?: string
+          p_position_id?: string
+          p_starts_at: string
+        }
+        Returns: string
+      }
       decide_time_off: {
         Args: {
           p_decision: Database["public"]["Enums"]["time_off_status"]
@@ -1718,6 +1863,7 @@ export type Database = {
         Args: { p_id: string }
         Returns: undefined
       }
+      delete_shift: { Args: { p_id: string }; Returns: undefined }
       is_dotts_admin: { Args: never; Returns: boolean }
       my_employee_id: { Args: { p_org_id: string }; Returns: string }
       next_receipt_number: { Args: { p_org_id: string }; Returns: string }
@@ -1727,6 +1873,10 @@ export type Database = {
       }
       org_is_locked: { Args: { p_org_id: string }; Returns: boolean }
       process_overdue_invoices: { Args: never; Returns: undefined }
+      publish_shifts_range: {
+        Args: { p_from: string; p_location_id: string; p_to: string }
+        Returns: number
+      }
       request_time_off: {
         Args: {
           p_employee_id: string
@@ -1737,6 +1887,7 @@ export type Database = {
         }
         Returns: string
       }
+      unassign_shift: { Args: { p_assignment_id: string }; Returns: undefined }
       update_employee: {
         Args: {
           p_contract_hours_per_week?: number
@@ -1763,6 +1914,17 @@ export type Database = {
           p_employee_id: string
           p_hourly_wage_cents?: number
           p_iban?: string
+        }
+        Returns: undefined
+      }
+      update_shift: {
+        Args: {
+          p_break_minutes?: number
+          p_ends_at: string
+          p_id: string
+          p_notes?: string
+          p_position_id?: string
+          p_starts_at: string
         }
         Returns: undefined
       }
