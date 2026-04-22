@@ -693,9 +693,13 @@ export type Database = {
           receipt_show_kvk: boolean | null
           receipt_show_logo: boolean | null
           receipt_show_vat_number: boolean | null
+          setup_fee_paid: boolean
+          setup_fee_paid_at: string | null
           slug: string
           street: string | null
           stripe_customer_id: string | null
+          stripe_subscription_id: string | null
+          subscription_current_period_end: string | null
           subscription_status: string | null
           trial_ends_at: string | null
           updated_at: string | null
@@ -723,9 +727,13 @@ export type Database = {
           receipt_show_kvk?: boolean | null
           receipt_show_logo?: boolean | null
           receipt_show_vat_number?: boolean | null
+          setup_fee_paid?: boolean
+          setup_fee_paid_at?: string | null
           slug: string
           street?: string | null
           stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          subscription_current_period_end?: string | null
           subscription_status?: string | null
           trial_ends_at?: string | null
           updated_at?: string | null
@@ -753,9 +761,13 @@ export type Database = {
           receipt_show_kvk?: boolean | null
           receipt_show_logo?: boolean | null
           receipt_show_vat_number?: boolean | null
+          setup_fee_paid?: boolean
+          setup_fee_paid_at?: string | null
           slug?: string
           street?: string | null
           stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          subscription_current_period_end?: string | null
           subscription_status?: string | null
           trial_ends_at?: string | null
           updated_at?: string | null
@@ -1575,6 +1587,70 @@ export type Database = {
             columns: ["position_id"]
             isOneToOne: false
             referencedRelation: "positions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      stripe_customers: {
+        Row: {
+          created_at: string
+          email: string | null
+          org_id: string
+          stripe_customer_id: string
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          org_id: string
+          stripe_customer_id: string
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          org_id?: string
+          stripe_customer_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stripe_customers_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: true
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      stripe_events: {
+        Row: {
+          id: string
+          org_id: string | null
+          payload: Json
+          processed_at: string
+          stripe_event_id: string
+          type: string
+        }
+        Insert: {
+          id?: string
+          org_id?: string | null
+          payload: Json
+          processed_at?: string
+          stripe_event_id: string
+          type: string
+        }
+        Update: {
+          id?: string
+          org_id?: string | null
+          payload?: Json
+          processed_at?: string
+          stripe_event_id?: string
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stripe_events_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
             referencedColumns: ["id"]
           },
         ]
