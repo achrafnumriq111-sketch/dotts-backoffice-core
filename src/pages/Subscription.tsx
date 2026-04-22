@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
-import { Download } from "lucide-react";
+import { useSearchParams } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
+import { CheckCircle2, Download, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -130,11 +132,52 @@ function StatusBadge<T extends string>({
 
 export default function Subscription() {
   const tr = t();
-  const { currentOrg, loading: orgLoading } = useOrg();
+  const { currentOrg, currentOrgFull, loading: orgLoading, refetchOrg } = useOrg();
+  const queryClient = useQueryClient();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [subscription, setSubscription] = useState<SubscriptionRow | null>(null);
   const [invoices, setInvoices] = useState<InvoiceRow[]>([]);
   const [subLoading, setSubLoading] = useState(true);
   const [invLoading, setInvLoading] = useState(true);
+  const [checkoutLoading, setCheckoutLoading] = useState(false);
+
+  // Handle ?checkout=success|cancel from Stripe redirect
+  useEffect(() => {
+    const checkout = searchParams.get("checkout");
+    if (!checkout) return;
+    if (checkout === "success") {
+      toast.success("Betaling geslaagd, je POS is geactiveerd");
+      refetchOrg();
+      if (currentOrg) {
+        queryClient.invalidateQueries({ queryKey: ["organization", currentOrg.id] });
+      }
+    } else if (checkout === "cancel") {
+      toast.error("Betaling afgebroken");
+    }
+    // Clean the URL
+    const next = new URLSearchParams(searchParams);
+    next.delete("checkout");
+    setSearchParams(next, { replace: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const startCheckout = async () => {
+    if (!currentOrg) return;
+    setCheckoutLoading(true);
+    const { data, error } = await supabase.functions.invoke("create-checkout-session", {
+      body: { org_id: currentOrg.id },
+    });
+    setCheckoutLoading(false);
+    if (error) {
+      toast.error("Checkout starten mislukt: " + error.message);
+      return;
+    }
+    if (data?.url) {
+      window.location.href = data.url as string;
+    } else {
+      toast.error("Checkout starten mislukt");
+    }
+  };
 
   useEffect(() => {
     if (!currentOrg) return;
@@ -195,6 +238,23 @@ export default function Subscription() {
       <PageHeader title={tr.subscription.title} subtitle={tr.subscription.subtitle} />
 
       <div className="space-y-4">
+        {/* Active subscription success state */}
+        {currentOrgFull?.setup_fee_paid &&
+          currentOrgFull?.subscription_status === "active" && (
+            <Card className="border-success/40 bg-success-muted">
+              <CardContent className="flex items-center gap-3 py-4">
+                <CheckCircle2 className="h-5 w-5 text-success" />
+                <div className="text-sm">
+                  <p className="font-medium text-success">Actief abonnement</p>
+                  <p className="text-muted-foreground">
+                    €79/mnd · verlengt op{" "}
+                    {formatDateNL(currentOrgFull.subscription_current_period_end)}
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
         {/* Current plan */}
         <Card>
           <CardHeader>
@@ -253,7 +313,7 @@ export default function Subscription() {
         </Card>
 
         {/* Setup fee */}
-        <Card>
+        <Card className={!currentOrgFull?.setup_fee_paid ? "border-warning/40" : ""}>
           <CardHeader>
             <CardTitle className="text-base">{tr.subscription.setupFee}</CardTitle>
           </CardHeader>
@@ -279,12 +339,12 @@ export default function Subscription() {
                     status={subscription.setup_fee_status}
                     map={SETUP_FEE_STATUS_MAP}
                   />
-                  {subscription.setup_fee_status === "pending" && (
-                    <Button
-                      size="sm"
-                      onClick={() => console.log("TODO: wire Stripe checkout for setup fee")}
-                    >
-                      Nu betalen
+                  {!currentOrgFull?.setup_fee_paid && (
+                    <Button size="sm" onClick={startCheckout} disabled={checkoutLoading}>
+                      {checkoutLoading && (
+                        <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />
+                      )}
+                      Start betaling
                     </Button>
                   )}
                 </div>
