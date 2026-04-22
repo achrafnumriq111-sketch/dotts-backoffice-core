@@ -238,6 +238,23 @@ export default function Subscription() {
       <PageHeader title={tr.subscription.title} subtitle={tr.subscription.subtitle} />
 
       <div className="space-y-4">
+        {/* Active subscription success state */}
+        {currentOrgFull?.setup_fee_paid &&
+          currentOrgFull?.subscription_status === "active" && (
+            <Card className="border-success/40 bg-success-muted">
+              <CardContent className="flex items-center gap-3 py-4">
+                <CheckCircle2 className="h-5 w-5 text-success" />
+                <div className="text-sm">
+                  <p className="font-medium text-success">Actief abonnement</p>
+                  <p className="text-muted-foreground">
+                    €79/mnd · verlengt op{" "}
+                    {formatDateNL(currentOrgFull.subscription_current_period_end)}
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
         {/* Current plan */}
         <Card>
           <CardHeader>
@@ -296,7 +313,7 @@ export default function Subscription() {
         </Card>
 
         {/* Setup fee */}
-        <Card>
+        <Card className={!currentOrgFull?.setup_fee_paid ? "border-warning/40" : ""}>
           <CardHeader>
             <CardTitle className="text-base">{tr.subscription.setupFee}</CardTitle>
           </CardHeader>
@@ -322,12 +339,12 @@ export default function Subscription() {
                     status={subscription.setup_fee_status}
                     map={SETUP_FEE_STATUS_MAP}
                   />
-                  {subscription.setup_fee_status === "pending" && (
-                    <Button
-                      size="sm"
-                      onClick={() => console.log("TODO: wire Stripe checkout for setup fee")}
-                    >
-                      Nu betalen
+                  {!currentOrgFull?.setup_fee_paid && (
+                    <Button size="sm" onClick={startCheckout} disabled={checkoutLoading}>
+                      {checkoutLoading && (
+                        <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />
+                      )}
+                      Start betaling
                     </Button>
                   )}
                 </div>
