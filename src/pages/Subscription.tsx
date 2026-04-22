@@ -132,11 +132,52 @@ function StatusBadge<T extends string>({
 
 export default function Subscription() {
   const tr = t();
-  const { currentOrg, loading: orgLoading } = useOrg();
+  const { currentOrg, currentOrgFull, loading: orgLoading, refetchOrg } = useOrg();
+  const queryClient = useQueryClient();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [subscription, setSubscription] = useState<SubscriptionRow | null>(null);
   const [invoices, setInvoices] = useState<InvoiceRow[]>([]);
   const [subLoading, setSubLoading] = useState(true);
   const [invLoading, setInvLoading] = useState(true);
+  const [checkoutLoading, setCheckoutLoading] = useState(false);
+
+  // Handle ?checkout=success|cancel from Stripe redirect
+  useEffect(() => {
+    const checkout = searchParams.get("checkout");
+    if (!checkout) return;
+    if (checkout === "success") {
+      toast.success("Betaling geslaagd, je POS is geactiveerd");
+      refetchOrg();
+      if (currentOrg) {
+        queryClient.invalidateQueries({ queryKey: ["organization", currentOrg.id] });
+      }
+    } else if (checkout === "cancel") {
+      toast.error("Betaling afgebroken");
+    }
+    // Clean the URL
+    const next = new URLSearchParams(searchParams);
+    next.delete("checkout");
+    setSearchParams(next, { replace: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const startCheckout = async () => {
+    if (!currentOrg) return;
+    setCheckoutLoading(true);
+    const { data, error } = await supabase.functions.invoke("create-checkout-session", {
+      body: { org_id: currentOrg.id },
+    });
+    setCheckoutLoading(false);
+    if (error) {
+      toast.error("Checkout starten mislukt: " + error.message);
+      return;
+    }
+    if (data?.url) {
+      window.location.href = data.url as string;
+    } else {
+      toast.error("Checkout starten mislukt");
+    }
+  };
 
   useEffect(() => {
     if (!currentOrg) return;
