@@ -15,6 +15,7 @@ export type NotificationSeverity = "info" | "warning" | "critical";
 
 export interface AppNotification {
   id: string;
+  kind: string;
   severity: NotificationSeverity;
   title: string;
   body: string | null;
@@ -43,7 +44,7 @@ const isSeverity = (s: string): s is NotificationSeverity =>
   s === "info" || s === "warning" || s === "critical";
 
 export function NotificationsProvider({ children }: { children: ReactNode }) {
-  const { currentOrg } = useOrg();
+  const { currentOrg, currentOrgFull } = useOrg();
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [loading, setLoading] = useState(true);
   const [refetchKey, setRefetchKey] = useState(0);
@@ -63,7 +64,7 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
     (async () => {
       const { data, error } = await supabase
         .from("notifications")
-        .select("id, severity, title, body, action_url, created_at")
+        .select("id, kind, severity, title, body, action_url, created_at")
         .eq("org_id", currentOrg.id)
         .is("dismissed_at", null)
         .order("created_at", { ascending: false })
@@ -82,6 +83,7 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
         .filter((n) => isSeverity(n.severity))
         .map((n) => ({
           id: n.id,
+          kind: n.kind,
           severity: n.severity as NotificationSeverity,
           title: n.title,
           body: n.body,
@@ -112,19 +114,24 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
   }, [refetch]);
 
   const value = useMemo<NotificationsContextValue>(() => {
-    const sorted = [...notifications].sort(
+    // Hide setup-fee notification once the fee has been paid
+    const visible = notifications.filter((n) => {
+      if (n.kind === "setup_fee_pending" && currentOrgFull?.setup_fee_paid) return false;
+      return true;
+    });
+    const sorted = [...visible].sort(
       (a, b) => SEVERITY_RANK[a.severity] - SEVERITY_RANK[b.severity],
     );
     const top = sorted[0] ?? null;
     return {
-      notifications,
+      notifications: visible,
       topNotification: top,
       isAccountBlocked: top?.severity === "critical",
       loading,
       dismiss,
       refetch,
     };
-  }, [notifications, loading, dismiss, refetch]);
+  }, [notifications, loading, dismiss, refetch, currentOrgFull?.setup_fee_paid]);
 
   return (
     <NotificationsContext.Provider value={value}>{children}</NotificationsContext.Provider>
