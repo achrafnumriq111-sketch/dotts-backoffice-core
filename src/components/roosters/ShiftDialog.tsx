@@ -100,6 +100,7 @@ export function ShiftDialog({
   const invalidate = () => {
     qc.invalidateQueries({ queryKey: ["shifts-week"] });
     qc.invalidateQueries({ queryKey: ["my-shifts"] });
+    qc.invalidateQueries({ queryKey: ["shifts-draft-count"] });
   };
 
   const saveMutation = useMutation({
