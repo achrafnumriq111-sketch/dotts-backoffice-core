@@ -165,7 +165,7 @@ export function ShiftDialog({
   const deleteMutation = useMutation({
     mutationFn: async () => {
       if (!shift) return;
-      const { error } = await supabase.rpc("delete_shift", { p_id: shift.id });
+      const { error } = await supabase.rpc("delete_shift", { p_shift_id: shift.id });
       if (error) throw error;
     },
     onSuccess: () => {
