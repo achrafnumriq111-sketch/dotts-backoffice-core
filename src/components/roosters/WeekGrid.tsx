@@ -27,6 +27,9 @@ interface Props {
   timeOff: { employee_id: string; start_date: string; end_date: string; status: string }[];
   search: string;
   positionFilter: string;
+  showHint?: boolean;
+  initialDialog?: { date: Date } | null;
+  onInitialDialogConsumed?: () => void;
 }
 
 interface DialogState {
@@ -47,9 +50,19 @@ export function WeekGrid({
   timeOff,
   search,
   positionFilter,
+  showHint,
+  initialDialog,
+  onInitialDialogConsumed,
 }: Props) {
   const dates = weekDates(weekStart);
   const [dialog, setDialog] = useState<DialogState>({ open: false, date: dates[0], shift: null, defaultEmployeeId: null });
+
+  // Allow parent to trigger an "add shift" dialog (header "+ Dienst" button).
+  if (initialDialog && !dialog.open) {
+    // schedule open via microtask-style state update
+    setDialog({ open: true, date: initialDialog.date, shift: null, defaultEmployeeId: null });
+    onInitialDialogConsumed?.();
+  }
 
   // Build per-employee context once
   const contextByEmployee = useMemo(() => {
@@ -139,6 +152,29 @@ export function WeekGrid({
     })),
   ];
 
+  // Total hours per day (published vs draft)
+  const totalsPerDate = useMemo(() => {
+    const map = new Map<string, { published: number; draft: number }>();
+    for (const d of dates) map.set(toIsoDate(d), { published: 0, draft: 0 });
+    for (const s of shifts) {
+      const dateKey = toIsoDate(new Date(s.starts_at));
+      const bucket = map.get(dateKey);
+      if (!bucket) continue;
+      const ms = new Date(s.ends_at).getTime() - new Date(s.starts_at).getTime();
+      const hours = Math.max(0, ms / 3_600_000 - (s.break_minutes ?? 0) / 60);
+      if (s.status === "published") bucket.published += hours;
+      else bucket.draft += hours;
+    }
+    return map;
+  }, [dates, shifts]);
+
+  function formatTotalCell(t: { published: number; draft: number }) {
+    const parts: string[] = [];
+    if (t.published > 0) parts.push(`${t.published.toFixed(1)}h gepubliceerd`);
+    if (t.draft > 0) parts.push(`${t.draft.toFixed(1)}h concept`);
+    return parts.length ? parts.join(" · ") : "—";
+  }
+
   return (
     <>
       {/* Mobile: stacked per dag */}
@@ -204,6 +240,13 @@ export function WeekGrid({
             </tr>
           </thead>
           <tbody>
+            {showHint && (
+              <tr>
+                <td colSpan={1 + dates.length} className="bg-muted/10 px-3 py-2 text-xs text-muted-foreground">
+                  Klik op een lege cel om een dienst toe te voegen, of kopieer een bestaande week.
+                </td>
+              </tr>
+            )}
             {rows.map((row) => (
               <tr key={row.id ?? "_unassigned"} className={cn("border-b border-border last:border-0", row.id === null && "bg-muted/20")}>
                 <td className="sticky left-0 z-10 bg-card p-3">
@@ -219,6 +262,19 @@ export function WeekGrid({
                 ))}
               </tr>
             ))}
+            <tr className="border-t-2 border-border bg-muted/30">
+              <td className="sticky left-0 z-10 bg-muted/30 p-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                Totaal uren
+              </td>
+              {dates.map((d, i) => {
+                const t = totalsPerDate.get(toIsoDate(d)) ?? { published: 0, draft: 0 };
+                return (
+                  <td key={i} className="p-2 text-right text-[11px] text-muted-foreground">
+                    {formatTotalCell(t)}
+                  </td>
+                );
+              })}
+            </tr>
           </tbody>
         </table>
       </Card>
