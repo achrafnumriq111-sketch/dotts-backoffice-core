@@ -1886,14 +1886,23 @@ export type Database = {
         }
         Returns: Json
       }
-      copy_week: {
-        Args: {
-          p_location_id: string
-          p_source_week_start: string
-          p_target_week_start: string
-        }
-        Returns: number
-      }
+      copy_week:
+        | {
+            Args: {
+              p_location_id: string
+              p_source_week_start: string
+              p_target_week_start: string
+            }
+            Returns: number
+          }
+        | {
+            Args: {
+              p_org_id: string
+              p_source_week_start: string
+              p_target_week_start: string
+            }
+            Returns: number
+          }
       create_org_with_owner: {
         Args: { p_name: string; p_slug?: string }
         Returns: string
@@ -1912,17 +1921,30 @@ export type Database = {
         }
         Returns: Json
       }
-      create_shift: {
-        Args: {
-          p_break_minutes?: number
-          p_ends_at: string
-          p_location_id: string
-          p_notes?: string
-          p_position_id?: string
-          p_starts_at: string
-        }
-        Returns: string
-      }
+      create_shift:
+        | {
+            Args: {
+              p_break_minutes?: number
+              p_ends_at: string
+              p_location_id: string
+              p_notes?: string
+              p_position_id?: string
+              p_starts_at: string
+            }
+            Returns: string
+          }
+        | {
+            Args: {
+              p_break_minutes?: number
+              p_ends_at: string
+              p_location_id: string
+              p_notes?: string
+              p_org_id: string
+              p_position_id: string
+              p_starts_at: string
+            }
+            Returns: string
+          }
       decide_time_off: {
         Args: {
           p_decision: Database["public"]["Enums"]["time_off_status"]
@@ -1939,7 +1961,7 @@ export type Database = {
         Args: { p_id: string }
         Returns: undefined
       }
-      delete_shift: { Args: { p_id: string }; Returns: undefined }
+      delete_shift: { Args: { p_shift_id: string }; Returns: undefined }
       is_dotts_admin: { Args: never; Returns: boolean }
       my_employee_id: { Args: { p_org_id: string }; Returns: string }
       next_receipt_number: { Args: { p_org_id: string }; Returns: string }
@@ -1949,10 +1971,15 @@ export type Database = {
       }
       org_is_locked: { Args: { p_org_id: string }; Returns: boolean }
       process_overdue_invoices: { Args: never; Returns: undefined }
-      publish_shifts_range: {
-        Args: { p_from: string; p_location_id: string; p_to: string }
-        Returns: number
-      }
+      publish_shifts_range:
+        | {
+            Args: { p_from: string; p_location_id: string; p_to: string }
+            Returns: number
+          }
+        | {
+            Args: { p_from: string; p_org_id: string; p_to: string }
+            Returns: number
+          }
       request_time_off: {
         Args: {
           p_employee_id: string
@@ -1963,7 +1990,12 @@ export type Database = {
         }
         Returns: string
       }
-      unassign_shift: { Args: { p_assignment_id: string }; Returns: undefined }
+      unassign_shift:
+        | { Args: { p_assignment_id: string }; Returns: undefined }
+        | {
+            Args: { p_employee_id: string; p_shift_id: string }
+            Returns: undefined
+          }
       update_employee: {
         Args: {
           p_contract_hours_per_week?: number
@@ -1993,17 +2025,30 @@ export type Database = {
         }
         Returns: undefined
       }
-      update_shift: {
-        Args: {
-          p_break_minutes?: number
-          p_ends_at: string
-          p_id: string
-          p_notes?: string
-          p_position_id?: string
-          p_starts_at: string
-        }
-        Returns: undefined
-      }
+      update_shift:
+        | {
+            Args: {
+              p_break_minutes?: number
+              p_ends_at: string
+              p_id: string
+              p_notes?: string
+              p_position_id?: string
+              p_starts_at: string
+            }
+            Returns: undefined
+          }
+        | {
+            Args: {
+              p_break_minutes?: number
+              p_ends_at?: string
+              p_location_id?: string
+              p_notes?: string
+              p_position_id?: string
+              p_shift_id: string
+              p_starts_at?: string
+            }
+            Returns: undefined
+          }
       upsert_availability_exception: {
         Args: {
           p_employee_id: string
