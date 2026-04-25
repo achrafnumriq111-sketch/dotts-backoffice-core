@@ -1872,12 +1872,21 @@ export type Database = {
         }
         Returns: string
       }
+      admin_link_employee: {
+        Args: { p_employee_id: string; p_user_email: string }
+        Returns: string
+      }
+      admin_unlink_employee: {
+        Args: { p_employee_id: string }
+        Returns: undefined
+      }
       archive_employee: { Args: { p_employee_id: string }; Returns: undefined }
       assign_shift: {
         Args: { p_employee_id: string; p_shift_id: string }
         Returns: string
       }
       cancel_time_off: { Args: { p_request_id: string }; Returns: undefined }
+      claim_my_employee: { Args: never; Returns: string }
       close_register_session: {
         Args: {
           p_counted_cash_cents: number
