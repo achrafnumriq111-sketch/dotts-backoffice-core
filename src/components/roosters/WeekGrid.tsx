@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -58,11 +58,13 @@ export function WeekGrid({
   const [dialog, setDialog] = useState<DialogState>({ open: false, date: dates[0], shift: null, defaultEmployeeId: null });
 
   // Allow parent to trigger an "add shift" dialog (header "+ Dienst" button).
-  if (initialDialog && !dialog.open) {
-    // schedule open via microtask-style state update
-    setDialog({ open: true, date: initialDialog.date, shift: null, defaultEmployeeId: null });
-    onInitialDialogConsumed?.();
-  }
+  useEffect(() => {
+    if (initialDialog) {
+      setDialog({ open: true, date: initialDialog.date, shift: null, defaultEmployeeId: null });
+      onInitialDialogConsumed?.();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialDialog]);
 
   // Build per-employee context once
   const contextByEmployee = useMemo(() => {
