@@ -106,3 +106,24 @@ export function useMyShifts(
     },
   });
 }
+
+export function useDraftShiftsCount(orgId: string | null | undefined) {
+  return useQuery({
+    queryKey: ["shifts-draft-count", orgId],
+    enabled: !!orgId,
+    refetchInterval: 60_000,
+    queryFn: async (): Promise<number> => {
+      const now = new Date();
+      const in14 = addDays(now, 14);
+      const { count, error } = await supabase
+        .from("shifts")
+        .select("id", { count: "exact", head: true })
+        .eq("org_id", orgId!)
+        .eq("status", "draft")
+        .gte("starts_at", now.toISOString())
+        .lt("starts_at", in14.toISOString());
+      if (error) throw error;
+      return count ?? 0;
+    },
+  });
+}
