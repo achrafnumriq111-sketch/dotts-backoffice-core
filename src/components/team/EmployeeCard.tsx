@@ -2,6 +2,12 @@ import { Link } from "react-router-dom";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import type { Employee } from "@/hooks/useEmployees";
 
 function initials(first: string, last: string) {
@@ -18,6 +24,7 @@ const EMPLOYMENT_LABELS: Record<string, string> = {
 
 export function EmployeeCard({ employee }: { employee: Employee }) {
   const positionColor = employee.positions?.color ?? "hsl(var(--muted))";
+  const linked = !!employee.user_id;
   return (
     <Link to={`/team/${employee.id}`}>
       <Card className="flex items-center gap-4 p-4 transition-colors hover:bg-muted/40">
@@ -42,6 +49,29 @@ export function EmployeeCard({ employee }: { employee: Employee }) {
                 {employee.positions.name}
               </Badge>
             )}
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Badge
+                    variant="outline"
+                    className={
+                      linked
+                        ? "border-success/30 bg-success-muted text-success"
+                        : "border-warning/30 bg-warning/10 text-warning"
+                    }
+                  >
+                    {linked ? "Gekoppeld" : "Niet gekoppeld"}
+                  </Badge>
+                </TooltipTrigger>
+                <TooltipContent>
+                  {linked
+                    ? employee.email
+                      ? `Gekoppeld (${employee.email})`
+                      : "Gekoppeld aan een account"
+                    : "Klik om te bewerken en een account te koppelen"}
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           </div>
           <p className="truncate text-sm text-muted-foreground">
             {EMPLOYMENT_LABELS[employee.employment_type] ?? employee.employment_type}

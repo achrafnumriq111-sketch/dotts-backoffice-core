@@ -1,6 +1,8 @@
 import { createContext, useContext, useEffect, useMemo, useState, ReactNode } from "react";
 import type { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
+import { useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 
 const AUTH_BASE_URL = "https://auth.mydotts.nl";
 
@@ -16,12 +18,30 @@ const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const qc = useQueryClient();
 
   useEffect(() => {
     // Subscribe FIRST so we never miss an event between getSession and listener setup.
-    const { data: sub } = supabase.auth.onAuthStateChange((_event, newSession) => {
+    const { data: sub } = supabase.auth.onAuthStateChange((event, newSession) => {
       setSession(newSession);
       setLoading(false);
+
+      // On sign-in, attempt to auto-claim an employee profile (if any).
+      // Defer to avoid blocking the auth callback.
+      if (event === "SIGNED_IN" && newSession?.user) {
+        setTimeout(() => {
+          supabase.rpc("claim_my_employee").then(({ data, error }) => {
+            if (error) return; // silent
+            if (data) {
+              toast.success("Welkom! Je profiel is automatisch gekoppeld.");
+              qc.invalidateQueries({ queryKey: ["employees"] });
+              qc.invalidateQueries({ queryKey: ["my-employee-id"] });
+              qc.invalidateQueries({ queryKey: ["timeoff-pending-count"] });
+              qc.invalidateQueries({ queryKey: ["shifts-draft-count"] });
+            }
+          });
+        }, 0);
+      }
     });
 
     supabase.auth.getSession().then(({ data }) => {
@@ -30,6 +50,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
 
     return () => sub.subscription.unsubscribe();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const value = useMemo<AuthContextValue>(

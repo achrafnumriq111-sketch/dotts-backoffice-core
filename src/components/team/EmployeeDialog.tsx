@@ -31,6 +31,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import type { Employee } from "@/hooks/useEmployees";
+import { AccountLinkSection } from "./AccountLinkSection";
 
 const EMPLOYMENT_TYPES = ["vast", "flex", "oproep", "stagiair", "zzp"] as const;
 const EMPLOYMENT_LABELS: Record<string, string> = {
@@ -318,6 +319,10 @@ export function EmployeeDialog({ open, onOpenChange, employee }: Props) {
                 </div>
               )}
             </div>
+          )}
+
+          {isEdit && employee && (
+            <AccountLinkSection employee={employee} />
           )}
 
           <DialogFooter>
