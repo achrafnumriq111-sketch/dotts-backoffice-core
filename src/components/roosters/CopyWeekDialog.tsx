@@ -35,6 +35,7 @@ export function CopyWeekDialog({ open, onOpenChange, locationId, sourceWeekStart
     },
     onSuccess: (count) => {
       qc.invalidateQueries({ queryKey: ["shifts-week"] });
+      qc.invalidateQueries({ queryKey: ["shifts-draft-count"] });
       toast.success(`${count} shift${count === 1 ? "" : "s"} gekopieerd`);
       onOpenChange(false);
     },

@@ -100,6 +100,7 @@ export function ShiftDialog({
   const invalidate = () => {
     qc.invalidateQueries({ queryKey: ["shifts-week"] });
     qc.invalidateQueries({ queryKey: ["my-shifts"] });
+    qc.invalidateQueries({ queryKey: ["shifts-draft-count"] });
   };
 
   const saveMutation = useMutation({
@@ -165,7 +166,7 @@ export function ShiftDialog({
   const deleteMutation = useMutation({
     mutationFn: async () => {
       if (!shift) return;
-      const { error } = await supabase.rpc("delete_shift", { p_id: shift.id });
+      const { error } = await supabase.rpc("delete_shift", { p_shift_id: shift.id });
       if (error) throw error;
     },
     onSuccess: () => {

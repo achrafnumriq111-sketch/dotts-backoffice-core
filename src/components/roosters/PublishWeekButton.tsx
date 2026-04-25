@@ -30,6 +30,7 @@ export function PublishWeekButton({ locationId, weekStart, draftCount }: Props) 
     onSuccess: (count) => {
       qc.invalidateQueries({ queryKey: ["shifts-week"] });
       qc.invalidateQueries({ queryKey: ["my-shifts"] });
+      qc.invalidateQueries({ queryKey: ["shifts-draft-count"] });
       toast.success(
         `${count} shift${count === 1 ? "" : "s"} gepubliceerd. Medewerkers zien hun rooster nu in /mijn/rooster.`,
       );

@@ -29,6 +29,7 @@ import { DottsLogo } from "./DottsLogo";
 import { useOrg } from "@/context/OrgContext";
 import { useTeamPermissions } from "@/hooks/useTeamPermissions";
 import { supabase } from "@/integrations/supabase/client";
+import { useDraftShiftsCount } from "@/hooks/useShifts";
 
 const items = [
   { titleKey: "dashboard", url: "/dashboard", icon: Home, end: true },
@@ -51,7 +52,7 @@ const teamSubItems = [
   { label: "Medewerkers", url: "/team", end: true, adminOnly: false },
   { label: "Beschikbaarheid", url: "/team/beschikbaarheid", end: true, adminOnly: true },
   { label: "Verlof", url: "/team/verlof", end: true, adminOnly: true, badge: "pending" as const },
-  { label: "Roosters", url: "/team/roosters", end: true, adminOnly: true },
+  { label: "Roosters", url: "/team/roosters", end: true, adminOnly: true, badge: "drafts" as const },
 ] as const;
 
 const myItems = [
@@ -86,6 +87,8 @@ export function AppSidebar() {
       return count ?? 0;
     },
   });
+
+  const { data: draftShiftsCount = 0 } = useDraftShiftsCount(canReviewTimeOff ? orgId : null);
 
   return (
     <Sidebar collapsible="icon" className="border-r border-sidebar-border">
@@ -155,6 +158,11 @@ export function AppSidebar() {
                               {"badge" in sub && sub.badge === "pending" && pendingCount > 0 && (
                                 <span className="ml-auto inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-semibold text-primary-foreground">
                                   {pendingCount}
+                                </span>
+                              )}
+                              {"badge" in sub && sub.badge === "drafts" && draftShiftsCount > 0 && (
+                                <span className="ml-auto inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-semibold text-primary-foreground">
+                                  {draftShiftsCount}
                                 </span>
                               )}
                             </NavLink>
