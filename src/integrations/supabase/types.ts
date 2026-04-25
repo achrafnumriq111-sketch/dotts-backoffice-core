@@ -1971,6 +1971,7 @@ export type Database = {
         Returns: undefined
       }
       delete_shift: { Args: { p_shift_id: string }; Returns: undefined }
+      get_linked_email: { Args: { p_employee_id: string }; Returns: string }
       is_dotts_admin: { Args: never; Returns: boolean }
       my_employee_id: { Args: { p_org_id: string }; Returns: string }
       next_receipt_number: { Args: { p_org_id: string }; Returns: string }
