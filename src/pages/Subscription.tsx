@@ -287,7 +287,10 @@ export default function Subscription() {
                 <div>
                   <p className="text-muted-foreground">{tr.subscription.nextBilling}</p>
                   <p className="mt-1 font-medium">
-                    {formatDateNL(subscription.current_period_end)}
+                    {formatDateNL(
+                      currentOrgFull?.subscription_current_period_end ??
+                        subscription.current_period_end,
+                    )}
                   </p>
                 </div>
                 <div>
@@ -300,8 +303,26 @@ export default function Subscription() {
                   <p className="text-muted-foreground">{tr.common.status}</p>
                   <div className="mt-1">
                     <StatusBadge
-                      status={subscription.status}
-                      map={SUBSCRIPTION_STATUS_MAP}
+                      status={
+                        currentOrgFull?.setup_fee_paid
+                          ? currentOrgFull?.subscription_status === "active"
+                            ? "active"
+                            : "paused"
+                          : "pending_setup"
+                      }
+                      map={
+                        currentOrgFull?.setup_fee_paid &&
+                        currentOrgFull?.subscription_status !== "active"
+                          ? {
+                              ...SUBSCRIPTION_STATUS_MAP,
+                              paused: {
+                                label: "Abonnement inactief",
+                                className:
+                                  "border-0 bg-warning-muted text-warning hover:bg-warning-muted",
+                              },
+                            }
+                          : SUBSCRIPTION_STATUS_MAP
+                      }
                     />
                   </div>
                 </div>
@@ -333,10 +354,15 @@ export default function Subscription() {
                   <p className="mt-1 text-xl font-semibold">
                     {formatEUR(subscription.setup_fee_cents)}
                   </p>
+                  {currentOrgFull?.setup_fee_paid && currentOrgFull?.setup_fee_paid_at && (
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Betaald op {formatDateNL(currentOrgFull.setup_fee_paid_at)}
+                    </p>
+                  )}
                 </div>
                 <div className="flex items-center gap-3">
                   <StatusBadge
-                    status={subscription.setup_fee_status}
+                    status={currentOrgFull?.setup_fee_paid ? "paid" : "pending"}
                     map={SETUP_FEE_STATUS_MAP}
                   />
                   {!currentOrgFull?.setup_fee_paid && (
