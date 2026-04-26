@@ -1,4 +1,6 @@
 import { Link } from "react-router-dom";
+import { format } from "date-fns";
+import { nl } from "date-fns/locale";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -25,6 +27,32 @@ const EMPLOYMENT_LABELS: Record<string, string> = {
 export function EmployeeCard({ employee }: { employee: Employee }) {
   const positionColor = employee.positions?.color ?? "hsl(var(--muted))";
   const linked = !!employee.user_id;
+  const invited = !linked && !!employee.invited_at;
+  const linkState: "linked" | "invited" | "unlinked" = linked
+    ? "linked"
+    : invited
+      ? "invited"
+      : "unlinked";
+  const linkBadgeClass =
+    linkState === "linked"
+      ? "border-success/30 bg-success-muted text-success"
+      : linkState === "invited"
+        ? "border-primary/30 bg-primary/10 text-primary"
+        : "border-muted bg-muted text-muted-foreground";
+  const linkBadgeLabel =
+    linkState === "linked"
+      ? "Gekoppeld"
+      : linkState === "invited"
+        ? "Uitgenodigd"
+        : "Niet gekoppeld";
+  const linkTooltip =
+    linkState === "linked"
+      ? employee.email
+        ? `Gekoppeld (${employee.email})`
+        : "Gekoppeld aan een account"
+      : linkState === "invited"
+        ? `Uitgenodigd op ${format(new Date(employee.invited_at!), "d MMM yyyy", { locale: nl })}`
+        : "Klik om te bewerken en een account te koppelen";
   return (
     <Link to={`/team/${employee.id}`}>
       <Card className="flex items-center gap-4 p-4 transition-colors hover:bg-muted/40">
@@ -52,24 +80,11 @@ export function EmployeeCard({ employee }: { employee: Employee }) {
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <Badge
-                    variant="outline"
-                    className={
-                      linked
-                        ? "border-success/30 bg-success-muted text-success"
-                        : "border-warning/30 bg-warning/10 text-warning"
-                    }
-                  >
-                    {linked ? "Gekoppeld" : "Niet gekoppeld"}
+                  <Badge variant="outline" className={linkBadgeClass}>
+                    {linkBadgeLabel}
                   </Badge>
                 </TooltipTrigger>
-                <TooltipContent>
-                  {linked
-                    ? employee.email
-                      ? `Gekoppeld (${employee.email})`
-                      : "Gekoppeld aan een account"
-                    : "Klik om te bewerken en een account te koppelen"}
-                </TooltipContent>
+                <TooltipContent>{linkTooltip}</TooltipContent>
               </Tooltip>
             </TooltipProvider>
           </div>
