@@ -270,8 +270,9 @@ export default function Sales() {
   }, [rows, paymentFilter, sortKey, sortDir]);
 
   const kpis = useMemo(() => {
-    const omzet = filteredRows.reduce((s, r) => s + r.total_cents, 0);
-    const aantal = filteredRows.length;
+    const nonVoided = filteredRows.filter((r) => !r.voided);
+    const omzet = nonVoided.reduce((s, r) => s + r.total_cents, 0);
+    const aantal = nonVoided.length;
     const gemiddeld = aantal > 0 ? Math.round(omzet / aantal) : 0;
     return { omzet, aantal, gemiddeld };
   }, [filteredRows]);
