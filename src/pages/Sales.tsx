@@ -655,19 +655,22 @@ export default function Sales() {
                 })()}
               </div>
 
-              <SheetFooter className="mt-4 flex-row justify-end gap-2 sm:space-x-0">
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <span tabIndex={0}>
-                        <Button variant="outline" disabled>
-                          Mail bon
-                        </Button>
-                      </span>
-                    </TooltipTrigger>
-                    <TooltipContent>Binnenkort beschikbaar</TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
+              <SheetFooter className="mt-4 flex-col items-end gap-2 sm:space-x-0">
+                {detail.receipt_emailed_at && (
+                  <p className="text-xs text-muted-foreground">
+                    Verzonden naar {detail.receipt_emailed_to ?? "—"} op{" "}
+                    {format(new Date(detail.receipt_emailed_at), "d MMM HH:mm", { locale: nl })}
+                  </p>
+                )}
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setEmailValue(detail.customer_email ?? "");
+                    setEmailOpen(true);
+                  }}
+                >
+                  Mail bon
+                </Button>
               </SheetFooter>
             </>
           )}
