@@ -21,6 +21,14 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -54,12 +62,6 @@ import {
   SheetTitle,
   SheetFooter,
 } from "@/components/ui/sheet";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
 
 import { supabase } from "@/integrations/supabase/client";
 import { useOrg } from "@/context/OrgContext";
@@ -118,6 +120,9 @@ interface SaleDetail {
   tax_cents: number;
   total_cents: number;
   location_id: string | null;
+  customer_email: string | null;
+  receipt_emailed_at: string | null;
+  receipt_emailed_to: string | null;
   locations: { name: string } | null;
   sale_items: SaleDetailItem[];
   payments: SaleDetailPayment[];
@@ -198,6 +203,11 @@ export default function Sales() {
   const [stornoOpen, setStornoOpen] = useState(false);
   const [stornoReason, setStornoReason] = useState("");
   const [stornoSubmitting, setStornoSubmitting] = useState(false);
+
+  // Email receipt state
+  const [emailOpen, setEmailOpen] = useState(false);
+  const [emailValue, setEmailValue] = useState("");
+  const [emailSubmitting, setEmailSubmitting] = useState(false);
 
   const dateRange = useMemo(() => {
     const cf = customFrom ? new Date(customFrom) : undefined;
@@ -373,6 +383,53 @@ export default function Sales() {
     setStornoOpen(false);
     setStornoReason("");
     await reloadAfterStorno();
+  };
+
+  const reloadDetail = async () => {
+    if (!selectedId) return;
+    const { data } = await supabase
+      .from("sales")
+      .select("*, sale_items(*), payments(*), locations(name)")
+      .eq("id", selectedId)
+      .single();
+    if (data) setDetail(data as unknown as SaleDetail);
+  };
+
+  const mapEmailError = (msg: string): string => {
+    if (msg.includes("unauthorized")) return "Je bent niet ingelogd.";
+    if (msg.includes("forbidden")) return "Geen toegang tot deze verkoop.";
+    if (msg.includes("sale_not_found")) return "Verkoop niet gevonden.";
+    if (msg.includes("invalid_email")) return "Ongeldig e-mailadres.";
+    if (msg.includes("brevo_failed")) return "E-mail versturen mislukt. Probeer opnieuw.";
+    return msg;
+  };
+
+  const handleEmailReceipt = async () => {
+    if (!detail) return;
+    const email = emailValue.trim();
+    if (!email.includes("@")) {
+      toast.error("Ongeldig e-mailadres.");
+      return;
+    }
+    setEmailSubmitting(true);
+    const { data, error } = await supabase.functions.invoke("email-receipt", {
+      body: { sale_id: detail.id, recipient_email: email },
+    });
+    setEmailSubmitting(false);
+    if (error) {
+      console.error("email-receipt failed", error, data);
+      const errMsg =
+        (data as { error?: string } | null)?.error ?? error.message ?? "unknown_error";
+      toast.error(mapEmailError(errMsg));
+      return;
+    }
+    if (data && typeof data === "object" && "error" in data && data.error) {
+      toast.error(mapEmailError(String(data.error)));
+      return;
+    }
+    toast.success(`Bon verzonden naar ${email}`);
+    setEmailOpen(false);
+    await reloadDetail();
   };
 
   return (
@@ -645,19 +702,22 @@ export default function Sales() {
                 })()}
               </div>
 
-              <SheetFooter className="mt-4 flex-row justify-end gap-2 sm:space-x-0">
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <span tabIndex={0}>
-                        <Button variant="outline" disabled>
-                          Mail bon
-                        </Button>
-                      </span>
-                    </TooltipTrigger>
-                    <TooltipContent>Binnenkort beschikbaar</TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
+              <SheetFooter className="mt-4 flex-col items-end gap-2 sm:space-x-0">
+                {detail.receipt_emailed_at && (
+                  <p className="text-xs text-muted-foreground">
+                    Verzonden naar {detail.receipt_emailed_to ?? "—"} op{" "}
+                    {format(new Date(detail.receipt_emailed_at), "d MMM HH:mm", { locale: nl })}
+                  </p>
+                )}
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setEmailValue(detail.customer_email ?? "");
+                    setEmailOpen(true);
+                  }}
+                >
+                  Mail bon
+                </Button>
               </SheetFooter>
             </>
           )}
@@ -698,6 +758,44 @@ export default function Sales() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Email receipt dialog */}
+      <Dialog open={emailOpen} onOpenChange={(o) => !emailSubmitting && setEmailOpen(o)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Bon mailen</DialogTitle>
+            <DialogDescription>
+              Vul het e-mailadres in waar de bon naartoe verstuurd moet worden.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            <Label htmlFor="email-recipient">E-mailadres ontvanger</Label>
+            <Input
+              id="email-recipient"
+              type="email"
+              value={emailValue}
+              onChange={(e) => setEmailValue(e.target.value)}
+              placeholder="naam@voorbeeld.nl"
+              autoFocus
+            />
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setEmailOpen(false)}
+              disabled={emailSubmitting}
+            >
+              Annuleren
+            </Button>
+            <Button
+              onClick={handleEmailReceipt}
+              disabled={!emailValue.trim().includes("@") || emailSubmitting}
+            >
+              {emailSubmitting ? "Bezig…" : "Verstuur"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

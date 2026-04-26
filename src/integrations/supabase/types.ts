@@ -1360,6 +1360,8 @@ export type Database = {
           location_id: string | null
           notes: string | null
           org_id: string
+          receipt_emailed_at: string | null
+          receipt_emailed_to: string | null
           receipt_number: string
           status: string
           subtotal_cents: number
@@ -1382,6 +1384,8 @@ export type Database = {
           location_id?: string | null
           notes?: string | null
           org_id: string
+          receipt_emailed_at?: string | null
+          receipt_emailed_to?: string | null
           receipt_number: string
           status?: string
           subtotal_cents?: number
@@ -1404,6 +1408,8 @@ export type Database = {
           location_id?: string | null
           notes?: string | null
           org_id?: string
+          receipt_emailed_at?: string | null
+          receipt_emailed_to?: string | null
           receipt_number?: string
           status?: string
           subtotal_cents?: number
