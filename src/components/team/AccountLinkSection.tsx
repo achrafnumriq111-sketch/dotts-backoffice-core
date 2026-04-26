@@ -1,7 +1,9 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Link2, Unlink, UserCheck } from "lucide-react";
+import { Link2, Mail, Send, Unlink, UserCheck } from "lucide-react";
 import { toast } from "sonner";
+import { format } from "date-fns";
+import { nl } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -31,6 +33,19 @@ function mapLinkError(msg: string): string {
   return msg || "Er ging iets mis";
 }
 
+function mapInviteError(code: string): string {
+  const c = code.toLowerCase();
+  if (c.includes("unauthorized")) return "Je bent niet ingelogd.";
+  if (c.includes("forbidden")) return "Alleen owners en managers kunnen uitnodigen.";
+  if (c.includes("employee_not_found")) return "Medewerker niet gevonden.";
+  if (c.includes("employee_has_no_email"))
+    return "Deze medewerker heeft geen e-mailadres. Vul eerst een e-mail in.";
+  if (c.includes("already_linked"))
+    return "Deze medewerker heeft al een gekoppeld account.";
+  if (c.includes("invite_failed")) return "Uitnodiging mislukt. Probeer opnieuw.";
+  return code || "Er ging iets mis";
+}
+
 interface Props {
   employee: Employee;
 }
@@ -38,8 +53,10 @@ interface Props {
 export function AccountLinkSection({ employee }: Props) {
   const qc = useQueryClient();
   const isLinked = !!employee.user_id;
+  const isInvited = !isLinked && !!employee.invited_at;
   const [email, setEmail] = useState(employee.email ?? "");
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [showManualLink, setShowManualLink] = useState(false);
 
   const linkedEmailQuery = useQuery({
     queryKey: ["linked-email", employee.id, employee.user_id],
@@ -63,6 +80,40 @@ export function AccountLinkSection({ employee }: Props) {
     qc.invalidateQueries({ queryKey: ["employee", employee.id] });
     qc.invalidateQueries({ queryKey: ["linked-email", employee.id] });
   };
+
+  const inviteMutation = useMutation({
+    mutationFn: async () => {
+      const { data, error } = await supabase.functions.invoke("invite-employee", {
+        body: { employee_id: employee.id },
+      });
+      if (error) {
+        // Try to surface a structured error code from the function body.
+        const ctx = (error as { context?: { body?: unknown } }).context;
+        let code = error.message;
+        try {
+          const body = ctx?.body;
+          const parsed =
+            typeof body === "string" ? JSON.parse(body) : (body as { error?: string } | undefined);
+          if (parsed?.error) code = parsed.error;
+        } catch {
+          // ignore
+        }
+        throw new Error(code);
+      }
+      const payload = data as { error?: string; success?: boolean };
+      if (payload?.error) throw new Error(payload.error);
+      return payload;
+    },
+    onSuccess: () => {
+      invalidate();
+      toast.success(
+        employee.email
+          ? `Uitnodiging verstuurd naar ${employee.email}`
+          : "Uitnodiging verstuurd",
+      );
+    },
+    onError: (e: Error) => toast.error(mapInviteError(e.message)),
+  });
 
   const linkMutation = useMutation({
     mutationFn: async () => {
@@ -95,6 +146,43 @@ export function AccountLinkSection({ employee }: Props) {
     },
     onError: (e: Error) => toast.error(mapLinkError(e.message)),
   });
+
+  const manualLinkBlock = (
+    <div className="mt-3 border-t border-border pt-3">
+      {!showManualLink ? (
+        <button
+          type="button"
+          className="text-xs text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
+          onClick={() => setShowManualLink(true)}
+        >
+          Of koppel een bestaand account
+        </button>
+      ) : (
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
+          <div className="flex-1">
+            <Label htmlFor="link-email" className="text-xs">
+              E-mail van bestaand account
+            </Label>
+            <Input
+              id="link-email"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="medewerker@voorbeeld.nl"
+            />
+          </div>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => linkMutation.mutate()}
+            disabled={linkMutation.isPending || !email.trim()}
+          >
+            {linkMutation.isPending ? "Bezig…" : "Koppelen"}
+          </Button>
+        </div>
+      )}
+    </div>
+  );
 
   if (isLinked) {
     const linkedEmail = linkedEmailQuery.data;
@@ -148,35 +236,62 @@ export function AccountLinkSection({ employee }: Props) {
     );
   }
 
+  if (isInvited) {
+    const invitedAt = employee.invited_at!;
+    return (
+      <div className="rounded-md border border-border p-4">
+        <div className="mb-1 flex items-center gap-2 text-sm font-medium">
+          <Mail className="h-4 w-4 text-primary" />
+          Uitnodiging verstuurd
+        </div>
+        <p className="mb-3 text-xs text-muted-foreground">
+          Verstuurd op{" "}
+          <span className="font-medium text-foreground">
+            {format(new Date(invitedAt), "d MMM yyyy", { locale: nl })}
+          </span>
+          . Wacht tot de medewerker zijn account aanmaakt, of koppel handmatig.
+        </p>
+        <Button
+          type="button"
+          size="sm"
+          variant="outline"
+          className="gap-2"
+          onClick={() => inviteMutation.mutate()}
+          disabled={inviteMutation.isPending || !employee.email}
+        >
+          <Send className="h-3.5 w-3.5" />
+          {inviteMutation.isPending ? "Bezig…" : "Stuur opnieuw"}
+        </Button>
+        {manualLinkBlock}
+      </div>
+    );
+  }
+
   return (
     <div className="rounded-md border border-border p-4">
       <div className="mb-1 flex items-center gap-2 text-sm font-medium">
         <Link2 className="h-4 w-4 text-primary" />
-        Account koppelen
+        Account
       </div>
       <p className="mb-3 text-xs text-muted-foreground">
-        Koppel een Dotts-account aan deze medewerker zodat hij/zij kan inloggen en zijn/haar
-        rooster, beschikbaarheid en verlof kan beheren.
+        Verstuur een uitnodiging zodat deze medewerker kan inloggen en zijn/haar rooster,
+        beschikbaarheid en verlof kan beheren.
       </p>
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
-        <div className="flex-1">
-          <Label htmlFor="link-email">E-mail</Label>
-          <Input
-            id="link-email"
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="medewerker@voorbeeld.nl"
-          />
-        </div>
-        <Button
-          type="button"
-          onClick={() => linkMutation.mutate()}
-          disabled={linkMutation.isPending || !email.trim()}
-        >
-          {linkMutation.isPending ? "Bezig…" : "Koppel account"}
-        </Button>
-      </div>
+      <Button
+        type="button"
+        className="gap-2"
+        onClick={() => inviteMutation.mutate()}
+        disabled={inviteMutation.isPending || !employee.email}
+      >
+        <Send className="h-3.5 w-3.5" />
+        {inviteMutation.isPending ? "Bezig…" : "Verstuur uitnodiging"}
+      </Button>
+      {!employee.email && (
+        <p className="mt-2 text-xs text-warning">
+          Vul eerst een e-mailadres in voor deze medewerker.
+        </p>
+      )}
+      {manualLinkBlock}
     </div>
   );
 }
