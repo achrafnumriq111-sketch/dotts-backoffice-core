@@ -205,6 +205,7 @@ export type Database = {
           end_date: string | null
           first_name: string
           id: string
+          invited_at: string | null
           is_active: boolean
           last_name: string
           notes: string | null
@@ -225,6 +226,7 @@ export type Database = {
           end_date?: string | null
           first_name: string
           id?: string
+          invited_at?: string | null
           is_active?: boolean
           last_name: string
           notes?: string | null
@@ -245,6 +247,7 @@ export type Database = {
           end_date?: string | null
           first_name?: string
           id?: string
+          invited_at?: string | null
           is_active?: boolean
           last_name?: string
           notes?: string | null
