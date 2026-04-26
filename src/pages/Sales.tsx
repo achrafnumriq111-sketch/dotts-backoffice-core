@@ -402,8 +402,13 @@ export default function Sales() {
     if (msg.includes("sale_not_found")) return "Verkoop niet gevonden.";
     if (msg.includes("invalid_email")) return "Ongeldig e-mailadres.";
     if (msg.includes("brevo_failed")) return "E-mail versturen mislukt. Probeer opnieuw.";
-    if (msg.includes("html_required") || msg.includes("subject_required"))
-      return "Er ging iets mis bij het opmaken van de bon, probeer opnieuw.";
+    if (
+      msg.includes("html_required") ||
+      msg.includes("subject_required") ||
+      msg.includes("sale_id_required")
+    ) {
+      return "Er ging iets mis bij het opmaken van de bon.";
+    }
     return msg;
   };
 
@@ -452,7 +457,7 @@ export default function Sales() {
     const receiptSale = buildReceiptSaleFromDetail(detail);
     const html = buildReceiptHtml(currentOrgFull, receiptSale);
     const orgLabel = currentOrgFull?.name ?? "Dotts";
-    const subject = `Bon ${detail.receipt_number} – ${orgLabel}`;
+    const subject = `Bon ${detail.receipt_number ?? detail.id} — ${orgLabel}`;
     const { data, error } = await supabase.functions.invoke("email-receipt", {
       body: {
         sale_id: detail.id,
