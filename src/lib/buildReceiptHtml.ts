@@ -69,6 +69,7 @@ export function buildReceiptHtml(
 
   const parts: string[] = [];
 
+  parts.push(`<!doctype html><html lang="nl"><body style="margin:0;padding:16px;background:#f5f5f5;">`);
   parts.push(
     `<div style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;max-width:380px;margin:0 auto;padding:16px;background:#ffffff;color:${fg};font-size:12px;line-height:1.5;">`,
   );
@@ -186,14 +187,10 @@ export function buildReceiptHtml(
     parts.push(
       `<p style="text-align:center;font-size:11px;color:${muted};white-space:pre-line;margin:0;">${escapeHtml(org.receipt_footer)}</p>`,
     );
-  } else {
-    parts.push(`<div style="${dashed}"></div>`);
-    parts.push(
-      `<p style="text-align:center;font-size:11px;color:${muted};margin:0;">Bedankt voor je aankoop!</p>`,
-    );
   }
 
   parts.push(`</div>`);
+  parts.push(`</body></html>`);
 
   return parts.join("");
 }
