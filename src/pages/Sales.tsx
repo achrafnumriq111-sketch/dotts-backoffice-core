@@ -21,6 +21,14 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -54,12 +62,6 @@ import {
   SheetTitle,
   SheetFooter,
 } from "@/components/ui/sheet";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
 
 import { supabase } from "@/integrations/supabase/client";
 import { useOrg } from "@/context/OrgContext";
@@ -118,6 +120,9 @@ interface SaleDetail {
   tax_cents: number;
   total_cents: number;
   location_id: string | null;
+  customer_email: string | null;
+  receipt_emailed_at: string | null;
+  receipt_emailed_to: string | null;
   locations: { name: string } | null;
   sale_items: SaleDetailItem[];
   payments: SaleDetailPayment[];
@@ -198,6 +203,11 @@ export default function Sales() {
   const [stornoOpen, setStornoOpen] = useState(false);
   const [stornoReason, setStornoReason] = useState("");
   const [stornoSubmitting, setStornoSubmitting] = useState(false);
+
+  // Email receipt state
+  const [emailOpen, setEmailOpen] = useState(false);
+  const [emailValue, setEmailValue] = useState("");
+  const [emailSubmitting, setEmailSubmitting] = useState(false);
 
   const dateRange = useMemo(() => {
     const cf = customFrom ? new Date(customFrom) : undefined;
