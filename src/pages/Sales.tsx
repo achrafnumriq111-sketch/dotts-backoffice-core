@@ -7,14 +7,29 @@ import {
   endOfWeek,
   startOfMonth,
   endOfMonth,
+  format,
 } from "date-fns";
-import { ChevronRight, Search } from "lucide-react";
+import { nl } from "date-fns/locale";
+import { Ban, ChevronRight, Search } from "lucide-react";
 import { toast } from "sonner";
 
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import {
   Table,
   TableBody,
@@ -50,6 +65,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useOrg } from "@/context/OrgContext";
 import { formatPriceCents } from "@/lib/eur";
 import { ReceiptView, type ReceiptSale } from "@/components/receipt/ReceiptView";
+import { cn } from "@/lib/utils";
 
 type DateRangeKey = "today" | "yesterday" | "week" | "month" | "custom";
 type PaymentFilter = "all" | "cash" | "pin";
@@ -63,6 +79,7 @@ interface SaleRow {
   created_at: string;
   total_cents: number;
   status: string;
+  voided: boolean;
   location_id: string | null;
   sale_items: { count: number }[] | null;
   payments: { method: string; amount_cents: number }[] | null;
@@ -94,6 +111,9 @@ interface SaleDetail {
   receipt_number: string;
   created_at: string;
   status: string;
+  voided: boolean;
+  voided_at: string | null;
+  voided_reason: string | null;
   subtotal_cents: number;
   tax_cents: number;
   total_cents: number;
@@ -140,8 +160,8 @@ function paymentLabel(method: string): string {
   return method;
 }
 
-function statusBadge(status: string) {
-  if (status === "voided") {
+function statusBadge(status: string, voided?: boolean) {
+  if (voided || status === "voided") {
     return (
       <Badge variant="destructive" className="border-0">
         Gestorneerd
@@ -174,6 +194,11 @@ export default function Sales() {
   const [detail, setDetail] = useState<SaleDetail | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
 
+  // Storno state
+  const [stornoOpen, setStornoOpen] = useState(false);
+  const [stornoReason, setStornoReason] = useState("");
+  const [stornoSubmitting, setStornoSubmitting] = useState(false);
+
   const dateRange = useMemo(() => {
     const cf = customFrom ? new Date(customFrom) : undefined;
     const ct = customTo ? new Date(customTo) : undefined;
@@ -189,7 +214,7 @@ export default function Sales() {
       let q = supabase
         .from("sales")
         .select(
-          "id, receipt_number, created_at, total_cents, status, location_id, sale_items(count), payments(method, amount_cents)",
+          "id, receipt_number, created_at, total_cents, status, voided, location_id, sale_items(count), payments(method, amount_cents)",
         )
         .eq("org_id", currentOrg.id)
         .gte("created_at", dateRange.from.toISOString())
@@ -201,7 +226,11 @@ export default function Sales() {
         q = q.ilike("receipt_number", `%${searchReceipt.trim()}%`);
       }
       if (statusFilter !== "all") {
-        q = q.eq("status", statusFilter);
+        if (statusFilter === "voided") {
+          q = q.eq("voided", true);
+        } else {
+          q = q.eq("voided", false).eq("status", "completed");
+        }
       }
 
       const { data, error } = await q;
@@ -283,6 +312,66 @@ export default function Sales() {
       setSortKey(key);
       setSortDir("desc");
     }
+  };
+
+  const reloadAfterStorno = async () => {
+    if (!currentOrg) return;
+    // Refresh list
+    const { data: listData } = await supabase
+      .from("sales")
+      .select(
+        "id, receipt_number, created_at, total_cents, status, voided, location_id, sale_items(count), payments(method, amount_cents)",
+      )
+      .eq("org_id", currentOrg.id)
+      .gte("created_at", dateRange.from.toISOString())
+      .lte("created_at", dateRange.to.toISOString())
+      .order("created_at", { ascending: false })
+      .limit(200);
+    setRows((listData ?? []) as SaleRow[]);
+    // Refresh detail
+    if (selectedId) {
+      const { data: d } = await supabase
+        .from("sales")
+        .select("*, sale_items(*), payments(*), locations(name)")
+        .eq("id", selectedId)
+        .single();
+      if (d) setDetail(d as unknown as SaleDetail);
+    }
+  };
+
+  const mapStornoError = (msg: string): string => {
+    if (msg.includes("unauthorized")) return "Je bent niet ingelogd.";
+    if (msg.includes("forbidden_session_closed"))
+      return "Je kunt alleen verkopen uit de huidige open kassasessie storneren. Vraag een manager.";
+    if (msg.includes("forbidden")) return "Je hebt geen toegang tot deze verkoop.";
+    if (msg.includes("reason_required")) return "Reden moet minimaal 3 tekens zijn.";
+    if (msg.includes("already_voided")) return "Deze verkoop is al gestorneerd.";
+    if (msg.includes("sale_not_found")) return "Verkoop niet gevonden.";
+    return msg;
+  };
+
+  const handleStorno = async () => {
+    if (!detail) return;
+    const reason = stornoReason.trim();
+    if (reason.length < 3) {
+      toast.error("Reden moet minimaal 3 tekens zijn.");
+      return;
+    }
+    setStornoSubmitting(true);
+    const { error } = await supabase.rpc("void_sale", {
+      p_sale_id: detail.id,
+      p_reason: reason,
+    });
+    setStornoSubmitting(false);
+    if (error) {
+      console.error("void_sale failed", error);
+      toast.error(mapStornoError(error.message ?? ""));
+      return;
+    }
+    toast.success("Verkoop gestorneerd");
+    setStornoOpen(false);
+    setStornoReason("");
+    await reloadAfterStorno();
   };
 
   return (
@@ -447,10 +536,15 @@ export default function Sales() {
                     </TableCell>
                     <TableCell className="text-right tabular-nums">{itemCount}</TableCell>
                     <TableCell>{method ? paymentLabel(method) : "—"}</TableCell>
-                    <TableCell className="text-right tabular-nums font-medium">
+                    <TableCell
+                      className={cn(
+                        "text-right tabular-nums font-medium",
+                        r.voided && "line-through text-muted-foreground",
+                      )}
+                    >
                       {formatPriceCents(r.total_cents)}
                     </TableCell>
-                    <TableCell>{statusBadge(r.status)}</TableCell>
+                    <TableCell>{statusBadge(r.status, r.voided)}</TableCell>
                     <TableCell>
                       <ChevronRight className="h-4 w-4 text-muted-foreground" />
                     </TableCell>
@@ -479,9 +573,36 @@ export default function Sales() {
                   <span className="text-sm text-muted-foreground">
                     {formatDutchDateTime(detail.created_at)}
                   </span>
-                  {statusBadge(detail.status)}
+                  {statusBadge(detail.status, detail.voided)}
                 </div>
               </SheetHeader>
+
+              {detail.voided && (
+                <Alert variant="destructive" className="mt-4">
+                  <AlertDescription>
+                    Gestorneerd op{" "}
+                    {detail.voided_at
+                      ? format(new Date(detail.voided_at), "d MMM yyyy HH:mm", { locale: nl })
+                      : "—"}{" "}
+                    — Reden: {detail.voided_reason ?? "—"}
+                  </AlertDescription>
+                </Alert>
+              )}
+
+              <div className="mt-4 flex justify-end">
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  disabled={detail.voided}
+                  onClick={() => {
+                    setStornoReason("");
+                    setStornoOpen(true);
+                  }}
+                >
+                  <Ban className="mr-2 h-4 w-4" />
+                  Storneer verkoop
+                </Button>
+              </div>
 
               <div className="mt-4 flex justify-center">
                 {(() => {
@@ -535,22 +656,47 @@ export default function Sales() {
                     </TooltipTrigger>
                     <TooltipContent>Binnenkort beschikbaar</TooltipContent>
                   </Tooltip>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <span tabIndex={0}>
-                        <Button variant="outline" disabled>
-                          Storno
-                        </Button>
-                      </span>
-                    </TooltipTrigger>
-                    <TooltipContent>Binnenkort beschikbaar</TooltipContent>
-                  </Tooltip>
                 </TooltipProvider>
               </SheetFooter>
             </>
           )}
         </SheetContent>
       </Sheet>
+
+      {/* Storno confirm dialog */}
+      <AlertDialog open={stornoOpen} onOpenChange={setStornoOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Verkoop storneren?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Dit kan niet ongedaan gemaakt worden. De voorraad wordt automatisch teruggeboekt.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="space-y-2">
+            <Label htmlFor="storno-reason">Reden voor storno</Label>
+            <Textarea
+              id="storno-reason"
+              value={stornoReason}
+              onChange={(e) => setStornoReason(e.target.value)}
+              placeholder="Bijv: verkeerd product gescand"
+              rows={3}
+            />
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={stornoSubmitting}>Annuleren</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault();
+                handleStorno();
+              }}
+              disabled={stornoReason.trim().length < 3 || stornoSubmitting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {stornoSubmitting ? "Bezig…" : "Storneren"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }

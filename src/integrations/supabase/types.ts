@@ -1367,8 +1367,10 @@ export type Database = {
           total_cents: number
           updated_at: string
           user_id: string | null
+          voided: boolean
           voided_at: string | null
           voided_by: string | null
+          voided_reason: string | null
         }
         Insert: {
           created_at?: string
@@ -1387,8 +1389,10 @@ export type Database = {
           total_cents?: number
           updated_at?: string
           user_id?: string | null
+          voided?: boolean
           voided_at?: string | null
           voided_by?: string | null
+          voided_reason?: string | null
         }
         Update: {
           created_at?: string
@@ -1407,8 +1411,10 @@ export type Database = {
           total_cents?: number
           updated_at?: string
           user_id?: string | null
+          voided?: boolean
           voided_at?: string | null
           voided_by?: string | null
+          voided_reason?: string | null
         }
         Relationships: [
           {
@@ -2102,6 +2108,10 @@ export type Database = {
         Returns: {
           org_id: string
         }[]
+      }
+      void_sale: {
+        Args: { p_reason: string; p_sale_id: string }
+        Returns: undefined
       }
     }
     Enums: {
