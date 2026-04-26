@@ -27,6 +27,7 @@ import MijnRooster from "./pages/mijn/Rooster";
 import SettingsPage from "./pages/Settings";
 import Subscription from "./pages/Subscription";
 import NotFound from "./pages/NotFound";
+import Welcome from "./pages/Welcome";
 
 const queryClient = new QueryClient();
 
@@ -36,37 +37,48 @@ const App = () => (
       <Toaster />
       <Sonner />
       <AuthProvider>
-        <RequireAuth>
-          <OrgProvider>
-            <NotificationsProvider>
-              <BrowserRouter>
-                <Routes>
-                  <Route element={<AppLayout />}>
-                    <Route path="/" element={<Navigate to="/dashboard" replace />} />
-                    <Route path="/dashboard" element={<Dashboard />} />
-                    <Route path="/kassa" element={<Register />} />
-                    <Route path="/producten" element={<Products />} />
-                    <Route path="/producten/modifier-groepen" element={<ModifierGroups />} />
-                    <Route path="/verkopen" element={<Sales />} />
-                    <Route path="/kasafsluiting" element={<Closing />} />
-                    <Route path="/locaties" element={<Locations />} />
-                    <Route path="/team" element={<Team />} />
-                    <Route path="/team/:employeeId" element={<EmployeeDetail />} />
-                    <Route path="/team/beschikbaarheid" element={<TeamBeschikbaarheid />} />
-                    <Route path="/team/verlof" element={<TeamVerlof />} />
-                    <Route path="/team/roosters" element={<TeamRoosters />} />
-                    <Route path="/mijn/beschikbaarheid" element={<MijnBeschikbaarheid />} />
-                    <Route path="/mijn/verlof" element={<MijnVerlof />} />
-                    <Route path="/mijn/rooster" element={<MijnRooster />} />
-                    <Route path="/instellingen" element={<SettingsPage />} />
-                    <Route path="/abonnement" element={<Subscription />} />
-                    <Route path="*" element={<NotFound />} />
-                  </Route>
-                </Routes>
-              </BrowserRouter>
-            </NotificationsProvider>
-          </OrgProvider>
-        </RequireAuth>
+        <BrowserRouter>
+          <Routes>
+            {/* Public routes (no auth required) */}
+            <Route path="/welcome" element={<Welcome />} />
+
+            {/* Authenticated routes */}
+            <Route
+              path="*"
+              element={
+                <RequireAuth>
+                  <OrgProvider>
+                    <NotificationsProvider>
+                      <Routes>
+                        <Route element={<AppLayout />}>
+                          <Route path="/" element={<Navigate to="/dashboard" replace />} />
+                          <Route path="/dashboard" element={<Dashboard />} />
+                          <Route path="/kassa" element={<Register />} />
+                          <Route path="/producten" element={<Products />} />
+                          <Route path="/producten/modifier-groepen" element={<ModifierGroups />} />
+                          <Route path="/verkopen" element={<Sales />} />
+                          <Route path="/kasafsluiting" element={<Closing />} />
+                          <Route path="/locaties" element={<Locations />} />
+                          <Route path="/team" element={<Team />} />
+                          <Route path="/team/:employeeId" element={<EmployeeDetail />} />
+                          <Route path="/team/beschikbaarheid" element={<TeamBeschikbaarheid />} />
+                          <Route path="/team/verlof" element={<TeamVerlof />} />
+                          <Route path="/team/roosters" element={<TeamRoosters />} />
+                          <Route path="/mijn/beschikbaarheid" element={<MijnBeschikbaarheid />} />
+                          <Route path="/mijn/verlof" element={<MijnVerlof />} />
+                          <Route path="/mijn/rooster" element={<MijnRooster />} />
+                          <Route path="/instellingen" element={<SettingsPage />} />
+                          <Route path="/abonnement" element={<Subscription />} />
+                          <Route path="*" element={<NotFound />} />
+                        </Route>
+                      </Routes>
+                    </NotificationsProvider>
+                  </OrgProvider>
+                </RequireAuth>
+              }
+            />
+          </Routes>
+        </BrowserRouter>
       </AuthProvider>
     </TooltipProvider>
   </QueryClientProvider>
