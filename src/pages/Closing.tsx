@@ -201,6 +201,7 @@ export default function Closing() {
       .select("id, total_cents, payments(method)")
       .eq("location_id", locationId)
       .eq("status", "completed")
+      .eq("voided", false)
       .gte("created_at", session.opened_at);
 
     if (error) {
