@@ -385,6 +385,53 @@ export default function Sales() {
     await reloadAfterStorno();
   };
 
+  const reloadDetail = async () => {
+    if (!selectedId) return;
+    const { data } = await supabase
+      .from("sales")
+      .select("*, sale_items(*), payments(*), locations(name)")
+      .eq("id", selectedId)
+      .single();
+    if (data) setDetail(data as unknown as SaleDetail);
+  };
+
+  const mapEmailError = (msg: string): string => {
+    if (msg.includes("unauthorized")) return "Je bent niet ingelogd.";
+    if (msg.includes("forbidden")) return "Geen toegang tot deze verkoop.";
+    if (msg.includes("sale_not_found")) return "Verkoop niet gevonden.";
+    if (msg.includes("invalid_email")) return "Ongeldig e-mailadres.";
+    if (msg.includes("brevo_failed")) return "E-mail versturen mislukt. Probeer opnieuw.";
+    return msg;
+  };
+
+  const handleEmailReceipt = async () => {
+    if (!detail) return;
+    const email = emailValue.trim();
+    if (!email.includes("@")) {
+      toast.error("Ongeldig e-mailadres.");
+      return;
+    }
+    setEmailSubmitting(true);
+    const { data, error } = await supabase.functions.invoke("email-receipt", {
+      body: { sale_id: detail.id, recipient_email: email },
+    });
+    setEmailSubmitting(false);
+    if (error) {
+      console.error("email-receipt failed", error, data);
+      const errMsg =
+        (data as { error?: string } | null)?.error ?? error.message ?? "unknown_error";
+      toast.error(mapEmailError(errMsg));
+      return;
+    }
+    if (data && typeof data === "object" && "error" in data && data.error) {
+      toast.error(mapEmailError(String(data.error)));
+      return;
+    }
+    toast.success(`Bon verzonden naar ${email}`);
+    setEmailOpen(false);
+    await reloadDetail();
+  };
+
   return (
     <>
       <PageHeader title="Verkopen" subtitle="Geschiedenis van alle bonnen." />
