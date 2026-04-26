@@ -758,6 +758,44 @@ export default function Sales() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Email receipt dialog */}
+      <Dialog open={emailOpen} onOpenChange={(o) => !emailSubmitting && setEmailOpen(o)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Bon mailen</DialogTitle>
+            <DialogDescription>
+              Vul het e-mailadres in waar de bon naartoe verstuurd moet worden.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            <Label htmlFor="email-recipient">E-mailadres ontvanger</Label>
+            <Input
+              id="email-recipient"
+              type="email"
+              value={emailValue}
+              onChange={(e) => setEmailValue(e.target.value)}
+              placeholder="naam@voorbeeld.nl"
+              autoFocus
+            />
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setEmailOpen(false)}
+              disabled={emailSubmitting}
+            >
+              Annuleren
+            </Button>
+            <Button
+              onClick={handleEmailReceipt}
+              disabled={!emailValue.trim().includes("@") || emailSubmitting}
+            >
+              {emailSubmitting ? "Bezig…" : "Verstuur"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
