@@ -28,6 +28,7 @@ import SettingsPage from "./pages/Settings";
 import Subscription from "./pages/Subscription";
 import NotFound from "./pages/NotFound";
 import Welcome from "./pages/Welcome";
+import AuthCallback from "./pages/AuthCallback";
 
 const queryClient = new QueryClient();
 
@@ -41,6 +42,7 @@ const App = () => (
           <Routes>
             {/* Public routes (no auth required) */}
             <Route path="/welcome" element={<Welcome />} />
+            <Route path="/auth/callback" element={<AuthCallback />} />
 
             {/* Authenticated routes */}
             <Route
