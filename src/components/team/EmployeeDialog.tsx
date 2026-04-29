@@ -485,8 +485,8 @@ export function EmployeeDialog({ open, onOpenChange, employee }: Props) {
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={submitting}>
               Annuleren
             </Button>
-            <Button type="submit" disabled={submitting}>
-              {submitting ? "Bezig…" : isEdit ? "Opslaan" : "Toevoegen"}
+            <Button type="submit" disabled={submitting || uploading}>
+              {uploading ? "Uploaden…" : submitting ? "Bezig…" : isEdit ? "Opslaan" : "Toevoegen"}
             </Button>
           </DialogFooter>
         </form>
