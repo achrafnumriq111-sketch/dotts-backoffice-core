@@ -413,7 +413,7 @@ export function EmployeeDialog({ open, onOpenChange, employee }: Props) {
               )}
             </div>
             <div>
-              <Label htmlFor="email">E-mail</Label>
+              <Label htmlFor="email">E-mail *</Label>
               <Input id="email" type="email" {...form.register("email")} />
               {form.formState.errors.email && (
                 <p className="mt-1 text-xs text-destructive">{form.formState.errors.email.message}</p>
@@ -425,18 +425,101 @@ export function EmployeeDialog({ open, onOpenChange, employee }: Props) {
             </div>
             <div>
               <Label>Functie</Label>
+              <Popover open={posOpen} onOpenChange={setPosOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    role="combobox"
+                    aria-expanded={posOpen}
+                    className="w-full justify-between font-normal"
+                  >
+                    <span className={cn(!form.watch("position_name") && "text-muted-foreground")}>
+                      {form.watch("position_name") || "Kies of typ een functie…"}
+                    </span>
+                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+                  <Command>
+                    <CommandInput
+                      placeholder="Bijv. Barista, Chef, Manager…"
+                      value={form.watch("position_name") ?? ""}
+                      onValueChange={(v) => form.setValue("position_name", v)}
+                    />
+                    <CommandList>
+                      <CommandEmpty>
+                        <button
+                          type="button"
+                          className="w-full px-2 py-1.5 text-left text-sm hover:bg-accent"
+                          onClick={() => setPosOpen(false)}
+                        >
+                          Nieuwe functie aanmaken: <strong>{form.watch("position_name")}</strong>
+                        </button>
+                      </CommandEmpty>
+                      <CommandGroup>
+                        {positions.map((p) => (
+                          <CommandItem
+                            key={p.id}
+                            value={p.name}
+                            onSelect={() => {
+                              form.setValue("position_name", p.name);
+                              form.setValue("position_id", p.id);
+                              setPosOpen(false);
+                            }}
+                          >
+                            <Check
+                              className={cn(
+                                "mr-2 h-4 w-4",
+                                form.watch("position_name")?.toLowerCase() === p.name.toLowerCase()
+                                  ? "opacity-100"
+                                  : "opacity-0",
+                              )}
+                            />
+                            {p.name}
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Onbekende functie? Typ en druk op Tab — wordt automatisch aangemaakt.
+              </p>
+            </div>
+            <div>
+              <Label>Rol *</Label>
               <Select
-                value={form.watch("position_id") || "_none"}
-                onValueChange={(v) => form.setValue("position_id", v === "_none" ? "" : v)}
+                value={form.watch("role") ?? ""}
+                onValueChange={(v) => form.setValue("role", v as RoleValue)}
+                disabled={!canEditRole || !hasLinkedAccount}
               >
-                <SelectTrigger><SelectValue placeholder="Geen" /></SelectTrigger>
+                <SelectTrigger>
+                  <SelectValue placeholder={hasLinkedAccount ? "Kies een rol" : "Geen account gekoppeld"} />
+                </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="_none">Geen</SelectItem>
-                  {positions.map((p) => (
-                    <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                  {ROLE_VALUES.map((r) => (
+                    <SelectItem
+                      key={r}
+                      value={r}
+                      disabled={r === "owner" && currentRole !== "owner"}
+                    >
+                      {ROLE_LABELS[r]}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
+              {!hasLinkedAccount && isEdit && (
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Account nog niet gekoppeld — koppel eerst een account om een rol toe te wijzen.
+                </p>
+              )}
+              {!isEdit && (
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Rol kan worden ingesteld nadat de medewerker is aangemaakt en gekoppeld.
+                </p>
+              )}
             </div>
             <div>
               <Label>Dienstverband</Label>
