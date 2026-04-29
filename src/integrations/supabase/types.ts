@@ -122,6 +122,47 @@ export type Database = {
           },
         ]
       }
+      cash_envelope_sequences: {
+        Row: {
+          created_at: string
+          current_value: number
+          id: string
+          org_id: string
+          padding: number
+          prefix: string
+          updated_at: string
+          year: number
+        }
+        Insert: {
+          created_at?: string
+          current_value?: number
+          id?: string
+          org_id: string
+          padding?: number
+          prefix?: string
+          updated_at?: string
+          year: number
+        }
+        Update: {
+          created_at?: string
+          current_value?: number
+          id?: string
+          org_id?: string
+          padding?: number
+          prefix?: string
+          updated_at?: string
+          year?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cash_envelope_sequences_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       dotts_admins: {
         Row: {
           created_at: string
@@ -1202,6 +1243,11 @@ export type Database = {
           closed_by: string | null
           counted_cash_cents: number | null
           created_at: string
+          envelope_assigned_at: string | null
+          envelope_assigned_by: string | null
+          envelope_number: string | null
+          envelope_sequence: number | null
+          envelope_year: number | null
           expected_cash_cents: number | null
           id: string
           location_id: string
@@ -1222,6 +1268,11 @@ export type Database = {
           closed_by?: string | null
           counted_cash_cents?: number | null
           created_at?: string
+          envelope_assigned_at?: string | null
+          envelope_assigned_by?: string | null
+          envelope_number?: string | null
+          envelope_sequence?: number | null
+          envelope_year?: number | null
           expected_cash_cents?: number | null
           id?: string
           location_id: string
@@ -1242,6 +1293,11 @@ export type Database = {
           closed_by?: string | null
           counted_cash_cents?: number | null
           created_at?: string
+          envelope_assigned_at?: string | null
+          envelope_assigned_by?: string | null
+          envelope_number?: string | null
+          envelope_sequence?: number | null
+          envelope_year?: number | null
           expected_cash_cents?: number | null
           id?: string
           location_id?: string
@@ -1910,6 +1966,16 @@ export type Database = {
         }
         Returns: Json
       }
+      configure_cash_envelope_sequence: {
+        Args: {
+          p_next_number?: number
+          p_org_id: string
+          p_padding?: number
+          p_prefix?: string
+          p_year?: number
+        }
+        Returns: undefined
+      }
       copy_week:
         | {
             Args: {
@@ -1987,6 +2053,10 @@ export type Database = {
       }
       delete_shift: { Args: { p_shift_id: string }; Returns: undefined }
       get_linked_email: { Args: { p_employee_id: string }; Returns: string }
+      get_or_create_cash_envelope_number: {
+        Args: { p_register_session_id: string }
+        Returns: string
+      }
       is_dotts_admin: { Args: never; Returns: boolean }
       my_employee_id: { Args: { p_org_id: string }; Returns: string }
       next_receipt_number: { Args: { p_org_id: string }; Returns: string }
