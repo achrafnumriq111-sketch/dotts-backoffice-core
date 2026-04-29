@@ -436,7 +436,7 @@ export default function Closing() {
       <PageHeader
         title="Kasafsluiting"
         subtitle="Open of sluit je kassa en bekijk de geschiedenis."
-        actions={
+        action={
           canManageSequence ? (
             <Button variant="outline" size="sm" onClick={() => setSeqOpen(true)}>
               <Settings2 className="mr-2 h-4 w-4" />
