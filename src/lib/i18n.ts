@@ -31,6 +31,7 @@ const nl = {
     register: "Kassa",
     products: "Producten",
     productsAll: "Alle producten",
+    productsCategories: "Categorieën",
     productsModifierGroups: "Modifier-groepen",
     sales: "Verkopen",
     closing: "Kasafsluiting",

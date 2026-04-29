@@ -25,6 +25,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { centsToInput, inputToCents } from "@/lib/eur";
+import { useQueryClient } from "@tanstack/react-query";
 
 interface VariantRow {
   id?: string; // undefined = new
@@ -68,6 +69,7 @@ const GENERIC_ERR = "Er ging iets mis. Probeer het opnieuw.";
 
 export function ProductEditor({ open, productId, onOpenChange, onSaved }: Props) {
   const { currentOrg } = useOrg();
+  const queryClient = useQueryClient();
   const [tab, setTab] = useState("basis");
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -77,6 +79,11 @@ export function ProductEditor({ open, productId, onOpenChange, onSaved }: Props)
   const [taxes, setTaxes] = useState<TaxOpt[]>([]);
   const [allGroups, setAllGroups] = useState<ModifierGroup[]>([]);
   const [groupSearch, setGroupSearch] = useState("");
+
+  // Inline new-category mini-dialog
+  const [newCatOpen, setNewCatOpen] = useState(false);
+  const [newCatName, setNewCatName] = useState("");
+  const [newCatSaving, setNewCatSaving] = useState(false);
 
   // Form state
   const [name, setName] = useState("");
@@ -413,7 +420,48 @@ export function ProductEditor({ open, productId, onOpenChange, onSaved }: Props)
     }
   };
 
+  const handleCreateCategory = async () => {
+    if (!currentOrg) return;
+    const trimmed = newCatName.trim();
+    if (!trimmed) {
+      toast.error("Geef de categorie een naam.");
+      return;
+    }
+    setNewCatSaving(true);
+    try {
+      const maxSort = categories.reduce((m, c) => Math.max(m, 0), 0);
+      const { data, error } = await supabase
+        .from("product_categories")
+        .insert({
+          org_id: currentOrg.id,
+          name: trimmed,
+          sort_order: maxSort + 1,
+          is_active: true,
+        })
+        .select("id, name")
+        .single();
+      if (error || !data) throw error ?? new Error("insert failed");
+      const next = [...categories, { id: data.id, name: data.name }].sort((a, b) =>
+        a.name.localeCompare(b.name),
+      );
+      setCategories(next);
+      setCategoryId(data.id);
+      queryClient.invalidateQueries({ queryKey: ["product_categories"] });
+      queryClient.invalidateQueries({ queryKey: ["products"] });
+      toast.success("Categorie aangemaakt.");
+      setNewCatOpen(false);
+      setNewCatName("");
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : GENERIC_ERR;
+      console.error(e);
+      toast.error(msg);
+    } finally {
+      setNewCatSaving(false);
+    }
+  };
+
   return (
+    <>
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-3xl p-0 sm:max-w-3xl gap-0">
         <DialogHeader className="border-b px-6 py-4">
@@ -483,6 +531,18 @@ export function ProductEditor({ open, productId, onOpenChange, onSaved }: Props)
                             {c.name}
                           </SelectItem>
                         ))}
+                        <div className="my-1 border-t" />
+                        <button
+                          type="button"
+                          onMouseDown={(e) => {
+                            e.preventDefault();
+                            setNewCatName("");
+                            setNewCatOpen(true);
+                          }}
+                          className="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-sm text-primary hover:bg-accent"
+                        >
+                          <Plus className="h-3.5 w-3.5" /> Nieuwe categorie aanmaken
+                        </button>
                       </SelectContent>
                     </Select>
                   </div>
@@ -707,5 +767,43 @@ export function ProductEditor({ open, productId, onOpenChange, onSaved }: Props)
         )}
       </DialogContent>
     </Dialog>
+
+    <Dialog open={newCatOpen} onOpenChange={setNewCatOpen}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Nieuwe categorie</DialogTitle>
+          <DialogDescription>Voeg snel een categorie toe.</DialogDescription>
+        </DialogHeader>
+        <div className="space-y-2 py-2">
+          <Label htmlFor="new-cat-name">Naam</Label>
+          <Input
+            id="new-cat-name"
+            autoFocus
+            value={newCatName}
+            onChange={(e) => setNewCatName(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !newCatSaving) {
+                e.preventDefault();
+                void handleCreateCategory();
+              }
+            }}
+            placeholder="Bijv. Koffie"
+          />
+        </div>
+        <div className="flex justify-end gap-2">
+          <Button
+            variant="outline"
+            onClick={() => setNewCatOpen(false)}
+            disabled={newCatSaving}
+          >
+            Annuleren
+          </Button>
+          <Button onClick={handleCreateCategory} disabled={newCatSaving}>
+            {newCatSaving ? "Opslaan…" : "Opslaan"}
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+    </>
   );
 }
