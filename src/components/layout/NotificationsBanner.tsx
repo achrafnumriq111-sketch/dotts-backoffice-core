@@ -17,6 +17,15 @@ export function NotificationsBanner() {
 
   const { id, kind, severity, title, body } = topNotification;
 
+  // Normalise currency formatting in stored notification text so that
+  // amounts like "EUR 499" render with the project's standard "€ 499" style.
+  const formatCurrencyText = (s: string | null): string | null => {
+    if (!s) return s;
+    return s.replace(/\bEUR\s+/g, "€ ");
+  };
+  const displayTitle = formatCurrencyText(title) ?? title;
+  const displayBody = formatCurrencyText(body);
+
   const styles =
     severity === "warning"
       ? "bg-warning-muted text-foreground border-warning/40"
@@ -51,8 +60,8 @@ export function NotificationsBanner() {
     >
       <Icon className="mt-0.5 h-4 w-4 shrink-0" />
       <div className="min-w-0 flex-1">
-        <p className="font-medium leading-tight">{title}</p>
-        {body && <p className="mt-0.5 text-xs opacity-90">{body}</p>}
+        <p className="font-medium leading-tight">{displayTitle}</p>
+        {displayBody && <p className="mt-0.5 text-xs opacity-90">{displayBody}</p>}
       </div>
       {isSetupFee && (
         <Button
