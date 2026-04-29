@@ -189,6 +189,16 @@ export default function Team() {
             </Card>
           </TabsContent>
         )}
+
+        {canEdit && (
+          <TabsContent value="permissions" className="mt-4 space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Bepaal per functie welke acties medewerkers in de Kassa mogen uitvoeren.
+              Wijzigingen gelden direct voor alle medewerkers met deze functie.
+            </p>
+            <PositionPermissionsTab />
+          </TabsContent>
+        )}
       </Tabs>
 
       <EmployeeDialog open={employeeDialogOpen} onOpenChange={setEmployeeDialogOpen} />
