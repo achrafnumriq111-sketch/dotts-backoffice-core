@@ -31,16 +31,18 @@ import { useTeamPermissions } from "@/hooks/useTeamPermissions";
 import { supabase } from "@/integrations/supabase/client";
 import { useDraftShiftsCount } from "@/hooks/useShifts";
 
+type AppRole = "owner" | "admin" | "manager" | "staff";
+
 const items = [
-  { titleKey: "dashboard", url: "/dashboard", icon: Home, end: true },
-  { titleKey: "register", url: "/kassa", icon: ShoppingCart, end: true },
-  { titleKey: "products", url: "/producten", icon: Package, end: false },
-  { titleKey: "sales", url: "/verkopen", icon: Receipt, end: true },
-  { titleKey: "closing", url: "/kasafsluiting", icon: Calculator, end: true },
-  { titleKey: "locations", url: "/locaties", icon: MapPin, end: true },
-  { titleKey: "team", url: "/team", icon: Users, end: false },
-  { titleKey: "settings", url: "/instellingen", icon: Settings, end: true },
-  { titleKey: "subscription", url: "/abonnement", icon: CreditCard, end: true },
+  { titleKey: "dashboard", url: "/dashboard", icon: Home, end: true, roles: ["owner", "admin", "manager"] as AppRole[] },
+  { titleKey: "register", url: "/kassa", icon: ShoppingCart, end: true, roles: ["owner", "admin", "manager", "staff"] as AppRole[] },
+  { titleKey: "products", url: "/producten", icon: Package, end: false, roles: ["owner", "admin"] as AppRole[] },
+  { titleKey: "sales", url: "/verkopen", icon: Receipt, end: true, roles: ["owner", "admin", "manager"] as AppRole[] },
+  { titleKey: "closing", url: "/kasafsluiting", icon: Calculator, end: true, roles: ["owner", "admin", "manager"] as AppRole[] },
+  { titleKey: "locations", url: "/locaties", icon: MapPin, end: true, roles: ["owner", "admin"] as AppRole[] },
+  { titleKey: "team", url: "/team", icon: Users, end: false, roles: ["owner", "admin", "manager"] as AppRole[] },
+  { titleKey: "settings", url: "/instellingen", icon: Settings, end: true, roles: ["owner", "admin"] as AppRole[] },
+  { titleKey: "subscription", url: "/abonnement", icon: CreditCard, end: true, roles: ["owner"] as AppRole[] },
 ] as const;
 
 const productsSubItems = [
@@ -71,9 +73,11 @@ export function AppSidebar() {
   const inTeam = location.pathname.startsWith("/team");
   const inMijn = location.pathname.startsWith("/mijn");
 
-  const { currentOrg } = useOrg();
+  const { currentOrg, currentRole } = useOrg();
   const { canReviewTimeOff, myEmployeeId } = useTeamPermissions();
   const orgId = currentOrg?.id;
+  const role = (currentRole ?? "staff") as AppRole;
+  const visibleItems = items.filter((i) => i.roles.includes(role));
 
   const { data: pendingCount = 0 } = useQuery({
     queryKey: ["timeoff-pending-count", orgId],
@@ -112,7 +116,7 @@ export function AppSidebar() {
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu>
-              {items.map((item) => (
+              {visibleItems.map((item) => (
                 <SidebarMenuItem key={item.url}>
                   <SidebarMenuButton asChild tooltip={tr.nav[item.titleKey]}>
                     <NavLink

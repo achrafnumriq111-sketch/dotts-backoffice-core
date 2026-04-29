@@ -27,6 +27,10 @@ const EMPLOYMENT_LABELS: Record<string, string> = {
   vast: "Vast", flex: "Tijdelijk", oproep: "Oproep", stagiair: "Stagiair", zzp: "ZZP",
 };
 
+const ROLE_LABELS: Record<string, string> = {
+  owner: "Owner", admin: "Admin", manager: "Manager", staff: "Staff",
+};
+
 function initials(first?: string, last?: string) {
   return `${first?.[0] ?? ""}${last?.[0] ?? ""}`.toUpperCase();
 }
@@ -53,6 +57,23 @@ export default function EmployeeDetail() {
   const [archiveOpen, setArchiveOpen] = useState(false);
   const [archiving, setArchiving] = useState(false);
   const [contractUrl, setContractUrl] = useState<string | null>(null);
+  const [roleLabel, setRoleLabel] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function loadRole() {
+      if (!employee?.user_id || !currentOrg?.id) { setRoleLabel(null); return; }
+      const { data } = await supabase
+        .from("org_members")
+        .select("role")
+        .eq("org_id", currentOrg.id)
+        .eq("user_id", employee.user_id)
+        .maybeSingle();
+      if (!cancelled) setRoleLabel(data?.role ? ROLE_LABELS[data.role] ?? data.role : null);
+    }
+    loadRole();
+    return () => { cancelled = true; };
+  }, [employee?.user_id, currentOrg?.id, editOpen]);
 
   useEffect(() => {
     let cancelled = false;
@@ -124,6 +145,12 @@ export default function EmployeeDetail() {
             <h1 className="text-2xl font-semibold">
               {employee.first_name} {employee.last_name}
             </h1>
+            {(employee.positions?.name || roleLabel) && (
+              <p className="mt-0.5 text-sm text-muted-foreground">
+                {employee.positions?.name ?? "Geen functie"}
+                {roleLabel ? ` • ${roleLabel}` : ""}
+              </p>
+            )}
             <div className="mt-1 flex items-center gap-2">
               {employee.positions && (
                 <Badge className="border-0 text-white" style={{ backgroundColor: employee.positions.color ?? undefined }}>
