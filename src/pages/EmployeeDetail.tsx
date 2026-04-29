@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, Archive, Pencil } from "lucide-react";
+import { ArrowLeft, Archive, Pencil, FileText, Download } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -52,6 +52,19 @@ export default function EmployeeDetail() {
   const [editOpen, setEditOpen] = useState(false);
   const [archiveOpen, setArchiveOpen] = useState(false);
   const [archiving, setArchiving] = useState(false);
+  const [contractUrl, setContractUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function load() {
+      const path = employee?.contract_file_url;
+      if (!path) { setContractUrl(null); return; }
+      const { data } = await supabase.storage.from("contracts").createSignedUrl(path, 60 * 10);
+      if (!cancelled) setContractUrl(data?.signedUrl ?? null);
+    }
+    load();
+    return () => { cancelled = true; };
+  }, [employee?.contract_file_url]);
 
   async function handleArchive() {
     if (!employee) return;
@@ -172,6 +185,23 @@ export default function EmployeeDetail() {
             />
             <FieldRow label="Startdatum" value={employee.start_date ? formatDateNL(employee.start_date) : undefined} />
             <FieldRow label="Einddatum" value={employee.end_date ? formatDateNL(employee.end_date) : undefined} />
+            <FieldRow
+              label="Contract (PDF)"
+              value={
+                employee.contract_file_url ? (
+                  <a
+                    href={contractUrl ?? "#"}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 text-primary hover:underline"
+                  >
+                    <FileText className="h-4 w-4" />
+                    {employee.contract_file_name ?? "contract.pdf"}
+                    <Download className="h-3.5 w-3.5" />
+                  </a>
+                ) : undefined
+              }
+            />
           </Card>
         </TabsContent>
 
