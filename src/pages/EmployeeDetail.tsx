@@ -24,7 +24,7 @@ import { formatPriceCents } from "@/lib/eur";
 import { formatDateNL, formatDateTimeNL } from "@/lib/i18n";
 
 const EMPLOYMENT_LABELS: Record<string, string> = {
-  vast: "Vast", flex: "Flex", oproep: "Oproep", stagiair: "Stagiair", zzp: "ZZP",
+  vast: "Vast", flex: "Tijdelijk", oproep: "Oproep", stagiair: "Stagiair", zzp: "ZZP",
 };
 
 function initials(first?: string, last?: string) {
