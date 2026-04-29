@@ -764,17 +764,17 @@ export default function Sales() {
                     {format(new Date(detail.receipt_emailed_at), "d MMM HH:mm", { locale: nl })}
                   </p>
                 )}
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    setEmailValue(detail.customer_email ?? "");
-                    setEmailOpen(true);
-                  }}
-                  hidden={!canEmailReceipt}
-                  className={canEmailReceipt ? undefined : "hidden"}
-                >
-                  Mail bon
-                </Button>
+                {canEmailReceipt && (
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setEmailValue(detail.customer_email ?? "");
+                      setEmailOpen(true);
+                    }}
+                  >
+                    Mail bon
+                  </Button>
+                )}
               </SheetFooter>
             </>
           )}
