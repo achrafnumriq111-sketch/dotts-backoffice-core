@@ -237,6 +237,8 @@ export type Database = {
       }
       employees: {
         Row: {
+          contract_file_name: string | null
+          contract_file_url: string | null
           contract_hours_per_week: number | null
           created_at: string
           created_by: string | null
@@ -258,6 +260,8 @@ export type Database = {
           user_id: string | null
         }
         Insert: {
+          contract_file_name?: string | null
+          contract_file_url?: string | null
           contract_hours_per_week?: number | null
           created_at?: string
           created_by?: string | null
@@ -279,6 +283,8 @@ export type Database = {
           user_id?: string | null
         }
         Update: {
+          contract_file_name?: string | null
+          contract_file_url?: string | null
           contract_hours_per_week?: number | null
           created_at?: string
           created_by?: string | null
@@ -1926,11 +1932,14 @@ export type Database = {
         Args: {
           p_birthdate?: string
           p_bsn?: string
+          p_contract_file_name?: string
+          p_contract_file_url?: string
           p_contract_hours_per_week?: number
           p_email?: string
           p_emergency_contact_name?: string
           p_emergency_contact_phone?: string
           p_employment_type?: Database["public"]["Enums"]["employment_type"]
+          p_end_date?: string
           p_first_name: string
           p_hourly_wage_cents?: number
           p_iban?: string
@@ -2093,14 +2102,17 @@ export type Database = {
           }
       update_employee: {
         Args: {
+          p_clear_contract?: boolean
+          p_contract_file_name?: string
+          p_contract_file_url?: string
           p_contract_hours_per_week?: number
           p_email?: string
           p_employee_id: string
           p_employment_type?: Database["public"]["Enums"]["employment_type"]
           p_end_date?: string
-          p_first_name: string
+          p_first_name?: string
           p_is_active?: boolean
-          p_last_name: string
+          p_last_name?: string
           p_notes?: string
           p_phone?: string
           p_position_id?: string

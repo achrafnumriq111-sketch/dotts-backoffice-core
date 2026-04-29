@@ -1,8 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { ChevronDown, ChevronRight, ShieldAlert } from "lucide-react";
+import { ChevronDown, ChevronRight, ShieldAlert, Upload, FileText, X, Download } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -33,10 +33,12 @@ import {
 import type { Employee } from "@/hooks/useEmployees";
 import { AccountLinkSection } from "./AccountLinkSection";
 
-const EMPLOYMENT_TYPES = ["vast", "flex", "oproep", "stagiair", "zzp"] as const;
+const EMPLOYMENT_TYPES = ["vast", "flex", "oproep"] as const;
 const EMPLOYMENT_LABELS: Record<string, string> = {
-  vast: "Vast", flex: "Flex", oproep: "Oproep", stagiair: "Stagiair", zzp: "ZZP",
+  vast: "Vast", flex: "Tijdelijk", oproep: "Oproep",
 };
+
+const MAX_CONTRACT_BYTES = 10 * 1024 * 1024; // 10 MB
 
 const schema = z.object({
   first_name: z.string().trim().min(1, "Voornaam is verplicht").max(100),
@@ -47,6 +49,7 @@ const schema = z.object({
   employment_type: z.enum(EMPLOYMENT_TYPES),
   contract_hours_per_week: z.string().optional(),
   start_date: z.string().optional(),
+  end_date: z.string().optional(),
   notes: z.string().max(2000).optional().or(z.literal("")),
   // sensitive
   bsn: z.string().trim().max(20).optional().or(z.literal("")),
@@ -73,6 +76,11 @@ export function EmployeeDialog({ open, onOpenChange, employee }: Props) {
   const qc = useQueryClient();
   const [showSensitive, setShowSensitive] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [contractFile, setContractFile] = useState<File | null>(null);
+  const [contractCleared, setContractCleared] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [downloadUrl, setDownloadUrl] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
   const isEdit = !!employee;
 
   const form = useForm<FormValues>({
@@ -80,7 +88,7 @@ export function EmployeeDialog({ open, onOpenChange, employee }: Props) {
     defaultValues: {
       first_name: "", last_name: "", email: "", phone: "",
       position_id: "", employment_type: "flex",
-      contract_hours_per_week: "", start_date: "", notes: "",
+      contract_hours_per_week: "", start_date: "", end_date: "", notes: "",
       bsn: "", iban: "", birthdate: "", hourly_wage: "",
       emergency_contact_name: "", emergency_contact_phone: "",
     },
@@ -88,17 +96,22 @@ export function EmployeeDialog({ open, onOpenChange, employee }: Props) {
 
   useEffect(() => {
     if (!open) return;
+    const existingType = (employee?.employment_type as string) ?? "flex";
+    const mappedType = (EMPLOYMENT_TYPES as readonly string[]).includes(existingType)
+      ? (existingType as typeof EMPLOYMENT_TYPES[number])
+      : "flex";
     form.reset({
       first_name: employee?.first_name ?? "",
       last_name: employee?.last_name ?? "",
       email: employee?.email ?? "",
       phone: employee?.phone ?? "",
       position_id: employee?.position_id ?? "",
-      employment_type: (employee?.employment_type as typeof EMPLOYMENT_TYPES[number]) ?? "flex",
+      employment_type: mappedType,
       contract_hours_per_week: employee?.contract_hours_per_week
         ? String(employee.contract_hours_per_week).replace(".", ",")
         : "",
       start_date: employee?.start_date ?? "",
+      end_date: employee?.end_date ?? "",
       notes: employee?.notes ?? "",
       bsn: priv?.bsn ?? "",
       iban: priv?.iban ?? "",
@@ -108,7 +121,60 @@ export function EmployeeDialog({ open, onOpenChange, employee }: Props) {
       emergency_contact_phone: priv?.emergency_contact_phone ?? "",
     });
     setShowSensitive(false);
+    setContractFile(null);
+    setContractCleared(false);
+    setDownloadUrl(null);
   }, [open, employee, priv, form]);
+
+  // Generate signed URL for existing contract.
+  useEffect(() => {
+    let cancelled = false;
+    async function loadUrl() {
+      const path = employee?.contract_file_url;
+      if (!open || !path || contractCleared) {
+        setDownloadUrl(null);
+        return;
+      }
+      const { data } = await supabase.storage.from("contracts").createSignedUrl(path, 60 * 10);
+      if (!cancelled) setDownloadUrl(data?.signedUrl ?? null);
+    }
+    loadUrl();
+    return () => { cancelled = true; };
+  }, [open, employee?.contract_file_url, contractCleared]);
+
+  function handlePickFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.type !== "application/pdf") {
+      toast.error("Alleen PDF-bestanden zijn toegestaan.");
+      e.target.value = "";
+      return;
+    }
+    if (file.size > MAX_CONTRACT_BYTES) {
+      toast.error("Bestand is te groot (max. 10 MB).");
+      e.target.value = "";
+      return;
+    }
+    setContractFile(file);
+    setContractCleared(false);
+  }
+
+  function clearContract() {
+    setContractFile(null);
+    setContractCleared(true);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  }
+
+  async function uploadContract(orgId: string, employeeId: string, file: File): Promise<{ path: string; name: string }> {
+    const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+    const path = `${orgId}/${employeeId}/${Date.now()}-${safeName}`;
+    const { error } = await supabase.storage.from("contracts").upload(path, file, {
+      contentType: "application/pdf",
+      upsert: false,
+    });
+    if (error) throw error;
+    return { path, name: file.name };
+  }
 
   async function onSubmit(values: FormValues) {
     if (!currentOrg) return;
@@ -122,6 +188,16 @@ export function EmployeeDialog({ open, onOpenChange, employee }: Props) {
         : undefined;
 
       if (isEdit && employee) {
+        let contractUrl: string | undefined;
+        let contractName: string | undefined;
+        if (contractFile) {
+          setUploading(true);
+          const uploaded = await uploadContract(currentOrg.id, employee.id, contractFile);
+          setUploading(false);
+          contractUrl = uploaded.path;
+          contractName = uploaded.name;
+        }
+
         const { error: e1 } = await supabase.rpc("update_employee", {
           p_employee_id: employee.id,
           p_first_name: values.first_name,
@@ -132,7 +208,11 @@ export function EmployeeDialog({ open, onOpenChange, employee }: Props) {
           p_employment_type: values.employment_type,
           p_contract_hours_per_week: hours,
           p_start_date: values.start_date || undefined,
+          p_end_date: values.end_date || undefined,
           p_notes: values.notes || undefined,
+          p_contract_file_url: contractUrl,
+          p_contract_file_name: contractName,
+          p_clear_contract: contractCleared && !contractFile,
         });
         if (e1) throw e1;
 
@@ -153,7 +233,7 @@ export function EmployeeDialog({ open, onOpenChange, employee }: Props) {
         }
         toast.success("Medewerker bijgewerkt");
       } else {
-        const { error } = await supabase.rpc("add_employee", {
+        const { data: newId, error } = await supabase.rpc("add_employee", {
           p_org_id: currentOrg.id,
           p_first_name: values.first_name,
           p_last_name: values.last_name,
@@ -163,6 +243,7 @@ export function EmployeeDialog({ open, onOpenChange, employee }: Props) {
           p_employment_type: values.employment_type,
           p_contract_hours_per_week: hours,
           p_start_date: values.start_date || undefined,
+          p_end_date: values.end_date || undefined,
           p_notes: values.notes || undefined,
           ...(canSeeFinancial
             ? {
@@ -176,6 +257,22 @@ export function EmployeeDialog({ open, onOpenChange, employee }: Props) {
             : {}),
         });
         if (error) throw error;
+
+        // After creation, upload contract if present and patch the row.
+        if (contractFile && newId) {
+          setUploading(true);
+          try {
+            const uploaded = await uploadContract(currentOrg.id, newId as unknown as string, contractFile);
+            const { error: upErr } = await supabase.rpc("update_employee", {
+              p_employee_id: newId as unknown as string,
+              p_contract_file_url: uploaded.path,
+              p_contract_file_name: uploaded.name,
+            });
+            if (upErr) throw upErr;
+          } finally {
+            setUploading(false);
+          }
+        }
         toast.success("Medewerker toegevoegd");
       }
       qc.invalidateQueries({ queryKey: ["employees", currentOrg.id] });
@@ -265,11 +362,70 @@ export function EmployeeDialog({ open, onOpenChange, employee }: Props) {
               <Label htmlFor="start_date">Startdatum</Label>
               <Input id="start_date" type="date" {...form.register("start_date")} />
             </div>
+            <div>
+              <Label htmlFor="end_date">Einddatum</Label>
+              <Input id="end_date" type="date" {...form.register("end_date")} />
+            </div>
           </div>
 
           <div>
             <Label htmlFor="notes">Notities</Label>
             <Textarea id="notes" rows={3} {...form.register("notes")} />
+          </div>
+
+          <div className="space-y-2">
+            <Label>Contract (PDF)</Label>
+            {contractFile ? (
+              <div className="flex items-center justify-between gap-2 rounded-md border border-border bg-muted/40 px-3 py-2">
+                <div className="flex min-w-0 items-center gap-2 text-sm">
+                  <FileText className="h-4 w-4 shrink-0 text-primary" />
+                  <span className="truncate">{contractFile.name}</span>
+                  <span className="shrink-0 text-xs text-muted-foreground">
+                    ({(contractFile.size / 1024 / 1024).toFixed(2)} MB)
+                  </span>
+                </div>
+                <Button type="button" size="sm" variant="ghost" onClick={clearContract}>
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            ) : employee?.contract_file_url && !contractCleared ? (
+              <div className="flex items-center justify-between gap-2 rounded-md border border-border bg-muted/40 px-3 py-2">
+                <div className="flex min-w-0 items-center gap-2 text-sm">
+                  <FileText className="h-4 w-4 shrink-0 text-primary" />
+                  <span className="truncate">{employee.contract_file_name ?? "contract.pdf"}</span>
+                </div>
+                <div className="flex shrink-0 items-center gap-1">
+                  {downloadUrl && (
+                    <Button type="button" size="sm" variant="ghost" asChild>
+                      <a href={downloadUrl} target="_blank" rel="noopener noreferrer">
+                        <Download className="h-4 w-4" />
+                      </a>
+                    </Button>
+                  )}
+                  <Button type="button" size="sm" variant="ghost" onClick={clearContract}>
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full justify-start gap-2"
+                onClick={() => fileInputRef.current?.click()}
+              >
+                <Upload className="h-4 w-4" />
+                PDF kiezen…
+              </Button>
+            )}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="application/pdf"
+              className="hidden"
+              onChange={handlePickFile}
+            />
+            <p className="text-xs text-muted-foreground">Max. 10 MB. Alleen PDF.</p>
           </div>
 
           {canSeeFinancial && (
@@ -329,8 +485,8 @@ export function EmployeeDialog({ open, onOpenChange, employee }: Props) {
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={submitting}>
               Annuleren
             </Button>
-            <Button type="submit" disabled={submitting}>
-              {submitting ? "Bezig…" : isEdit ? "Opslaan" : "Toevoegen"}
+            <Button type="submit" disabled={submitting || uploading}>
+              {uploading ? "Uploaden…" : submitting ? "Bezig…" : isEdit ? "Opslaan" : "Toevoegen"}
             </Button>
           </DialogFooter>
         </form>
