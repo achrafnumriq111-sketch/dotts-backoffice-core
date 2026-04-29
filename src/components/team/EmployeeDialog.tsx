@@ -250,6 +250,7 @@ export function EmployeeDialog({ open, onOpenChange, employee }: Props) {
               p_color: "#64748B",
               p_default_hourly_wage_cents: undefined,
               p_sort_order: nextSort,
+              p_permissions: {},
             } as never,
           );
           if (posErr) throw posErr;
