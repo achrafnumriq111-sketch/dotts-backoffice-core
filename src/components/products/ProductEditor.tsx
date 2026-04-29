@@ -25,6 +25,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { centsToInput, inputToCents } from "@/lib/eur";
+import { useQueryClient } from "@tanstack/react-query";
 
 interface VariantRow {
   id?: string; // undefined = new
@@ -68,6 +69,7 @@ const GENERIC_ERR = "Er ging iets mis. Probeer het opnieuw.";
 
 export function ProductEditor({ open, productId, onOpenChange, onSaved }: Props) {
   const { currentOrg } = useOrg();
+  const queryClient = useQueryClient();
   const [tab, setTab] = useState("basis");
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -77,6 +79,11 @@ export function ProductEditor({ open, productId, onOpenChange, onSaved }: Props)
   const [taxes, setTaxes] = useState<TaxOpt[]>([]);
   const [allGroups, setAllGroups] = useState<ModifierGroup[]>([]);
   const [groupSearch, setGroupSearch] = useState("");
+
+  // Inline new-category mini-dialog
+  const [newCatOpen, setNewCatOpen] = useState(false);
+  const [newCatName, setNewCatName] = useState("");
+  const [newCatSaving, setNewCatSaving] = useState(false);
 
   // Form state
   const [name, setName] = useState("");
@@ -483,6 +490,18 @@ export function ProductEditor({ open, productId, onOpenChange, onSaved }: Props)
                             {c.name}
                           </SelectItem>
                         ))}
+                        <div className="my-1 border-t" />
+                        <button
+                          type="button"
+                          onMouseDown={(e) => {
+                            e.preventDefault();
+                            setNewCatName("");
+                            setNewCatOpen(true);
+                          }}
+                          className="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-sm text-primary hover:bg-accent"
+                        >
+                          <Plus className="h-3.5 w-3.5" /> Nieuwe categorie aanmaken
+                        </button>
                       </SelectContent>
                     </Select>
                   </div>
