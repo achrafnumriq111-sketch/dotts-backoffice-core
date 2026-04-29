@@ -230,6 +230,34 @@ export function EmployeeDialog({ open, onOpenChange, employee }: Props) {
         ? inputToCents(values.hourly_wage)
         : undefined;
 
+      // Resolve position from free-text combobox.
+      const typedName = (values.position_name ?? "").trim();
+      let resolvedPositionId: string | undefined;
+      if (typedName) {
+        const match = positions.find(
+          (p) => p.name.toLowerCase() === typedName.toLowerCase(),
+        );
+        if (match) {
+          resolvedPositionId = match.id;
+        } else {
+          const nextSort = (positions[positions.length - 1]?.sort_order ?? 0) + 1;
+          const { data: newPosId, error: posErr } = await supabase.rpc(
+            "upsert_position",
+            {
+              p_org_id: currentOrg.id,
+              p_id: undefined,
+              p_name: typedName,
+              p_color: "#64748B",
+              p_default_hourly_wage_cents: undefined,
+              p_sort_order: nextSort,
+            } as never,
+          );
+          if (posErr) throw posErr;
+          resolvedPositionId = newPosId as unknown as string;
+          qc.invalidateQueries({ queryKey: ["positions", currentOrg.id] });
+        }
+      }
+
       if (isEdit && employee) {
         let contractUrl: string | undefined;
         let contractName: string | undefined;
@@ -247,7 +275,7 @@ export function EmployeeDialog({ open, onOpenChange, employee }: Props) {
           p_last_name: values.last_name,
           p_email: values.email || undefined,
           p_phone: values.phone || undefined,
-          p_position_id: values.position_id || undefined,
+          p_position_id: resolvedPositionId,
           p_employment_type: values.employment_type,
           p_contract_hours_per_week: hours,
           p_start_date: values.start_date || undefined,
@@ -258,6 +286,33 @@ export function EmployeeDialog({ open, onOpenChange, employee }: Props) {
           p_clear_contract: contractCleared && !contractFile,
         });
         if (e1) throw e1;
+
+        // Update role via org_members if linked & permitted & changed
+        if (
+          canEditRole &&
+          hasLinkedAccount &&
+          values.role &&
+          values.role !== targetRole
+        ) {
+          const { error: roleErr } = await supabase.rpc(
+            "set_employee_role",
+            { p_employee_id: employee.id, p_role: values.role } as never,
+          );
+          if (roleErr) {
+            const msg = (roleErr.message ?? "").toLowerCase();
+            if (msg.includes("forbidden")) {
+              toast.error("Je hebt geen rechten om deze rol te wijzigen.");
+            } else if (msg.includes("cannot_remove_last_owner")) {
+              toast.error("Kan de laatste owner niet verwijderen.");
+            } else if (msg.includes("employee_has_no_account")) {
+              toast.error("Medewerker heeft geen gekoppeld account.");
+            } else {
+              toast.error(roleErr.message);
+            }
+          } else {
+            qc.invalidateQueries({ queryKey: ["employee-role", employee.id] });
+          }
+        }
 
         if (canSeeFinancial && (
           values.bsn || values.iban || values.birthdate || values.hourly_wage ||
@@ -282,7 +337,7 @@ export function EmployeeDialog({ open, onOpenChange, employee }: Props) {
           p_last_name: values.last_name,
           p_email: values.email || undefined,
           p_phone: values.phone || undefined,
-          p_position_id: values.position_id || undefined,
+          p_position_id: resolvedPositionId,
           p_employment_type: values.employment_type,
           p_contract_hours_per_week: hours,
           p_start_date: values.start_date || undefined,
