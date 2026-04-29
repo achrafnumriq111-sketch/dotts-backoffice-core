@@ -915,6 +915,7 @@ export type Database = {
           is_active: boolean
           name: string
           org_id: string
+          permissions: Json
           sort_order: number
           updated_at: string
         }
@@ -926,6 +927,7 @@ export type Database = {
           is_active?: boolean
           name: string
           org_id: string
+          permissions?: Json
           sort_order?: number
           updated_at?: string
         }
@@ -937,6 +939,7 @@ export type Database = {
           is_active?: boolean
           name?: string
           org_id?: string
+          permissions?: Json
           sort_order?: number
           updated_at?: string
         }
@@ -2194,6 +2197,7 @@ export type Database = {
           p_id?: string
           p_name: string
           p_org_id: string
+          p_permissions?: Json
           p_sort_order?: number
         }
         Returns: string

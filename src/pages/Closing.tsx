@@ -52,6 +52,7 @@ import { Copy, Settings2 } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
 import { useOrg } from "@/context/OrgContext";
+import { usePositionPermissions } from "@/hooks/usePositionPermissions";
 import { formatEUR, formatDateTimeNL } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
@@ -127,6 +128,7 @@ function VarianceBadge({ cents }: { cents: number }) {
 export default function Closing() {
   const { currentOrg, currentRole } = useOrg();
   const orgId = currentOrg?.id ?? null;
+  const { canCloseRegister } = usePositionPermissions(orgId);
   const canManageSequence =
     currentRole === "owner" ||
     currentRole === "admin" ||
@@ -590,11 +592,17 @@ export default function Closing() {
                 <Button
                   size="lg"
                   className="w-full"
-                  disabled={!hasCounted || closing}
+                  disabled={!hasCounted || closing || !canCloseRegister}
                   onClick={() => setConfirmOpen(true)}
                 >
                   Kassa sluiten
                 </Button>
+                {!canCloseRegister && (
+                  <p className="mt-2 text-xs text-muted-foreground">
+                    Je hebt geen rechten om de kassa af te sluiten. Vraag een
+                    beheerder om de rechten van je functie aan te passen.
+                  </p>
+                )}
               </CardContent>
             </Card>
           </div>
