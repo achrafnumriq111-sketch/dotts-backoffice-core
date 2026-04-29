@@ -2094,6 +2094,13 @@ export type Database = {
         }
         Returns: string
       }
+      set_employee_role: {
+        Args: {
+          p_employee_id: string
+          p_role: Database["public"]["Enums"]["org_role"]
+        }
+        Returns: undefined
+      }
       unassign_shift:
         | { Args: { p_assignment_id: string }; Returns: undefined }
         | {
