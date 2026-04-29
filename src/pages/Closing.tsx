@@ -41,6 +41,14 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Copy, Settings2 } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
 import { useOrg } from "@/context/OrgContext";
@@ -75,6 +83,7 @@ interface ClosedSession {
   sale_count: number | null;
   notes: string | null;
   status: string;
+  envelope_number: string | null;
 }
 
 interface SaleAgg {
@@ -116,8 +125,12 @@ function VarianceBadge({ cents }: { cents: number }) {
 }
 
 export default function Closing() {
-  const { currentOrg } = useOrg();
+  const { currentOrg, currentRole } = useOrg();
   const orgId = currentOrg?.id ?? null;
+  const canManageSequence =
+    currentRole === "owner" ||
+    currentRole === "admin" ||
+    currentRole === "manager";
 
   const [bootLoading, setBootLoading] = useState(true);
   const [locationId, setLocationId] = useState<string | null>(null);
@@ -142,6 +155,21 @@ export default function Closing() {
   const [history, setHistory] = useState<ClosedSession[]>([]);
   const [historyLoading, setHistoryLoading] = useState(true);
   const [detail, setDetail] = useState<ClosedSession | null>(null);
+
+  // Envelope success dialog
+  const [envelopeDialog, setEnvelopeDialog] = useState<{
+    open: boolean;
+    number: string | null;
+  }>({ open: false, number: null });
+
+  // Sequence config dialog
+  const [seqOpen, setSeqOpen] = useState(false);
+  const [seqPrefix, setSeqPrefix] = useState("ENV");
+  const [seqYear, setSeqYear] = useState<number>(new Date().getFullYear());
+  const [seqNext, setSeqNext] = useState<number>(1);
+  const [seqPadding, setSeqPadding] = useState<number>(4);
+  const [seqSaving, setSeqSaving] = useState(false);
+  const [generatingFor, setGeneratingFor] = useState<string | null>(null);
 
   // ------- Loaders -------
   const loadLocationAndSession = useCallback(async () => {
@@ -304,6 +332,7 @@ export default function Closing() {
 
   const handleClose = async () => {
     if (!session) return;
+    const sessionIdToClose = session.id;
     setClosing(true);
     const { error } = await supabase.rpc("close_register_session", {
       p_session_id: session.id,
@@ -319,6 +348,23 @@ export default function Closing() {
       return;
     }
     toast.success("Kassa gesloten");
+
+    // Assign envelope number
+    let envelopeNumber: string | null = null;
+    const { data: envData, error: envErr } = await supabase.rpc(
+      "get_or_create_cash_envelope_number" as never,
+      { p_register_session_id: sessionIdToClose } as never,
+    );
+    if (envErr) {
+      console.error("envelope assign failed", envErr);
+      toast.warning(
+        "Kassa afgesloten, maar envelopnummer kon niet worden toegewezen.",
+      );
+    } else if (typeof envData === "string") {
+      envelopeNumber = envData;
+    }
+    setEnvelopeDialog({ open: true, number: envelopeNumber });
+
     setCountedInput("");
     setNotes("");
     setCashTotal(0);
@@ -328,10 +374,77 @@ export default function Closing() {
     await loadHistory();
   };
 
+  const copyToClipboard = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      toast.success("Gekopieerd");
+    } catch {
+      toast.error("Kopiëren mislukt");
+    }
+  };
+
+  const handleGenerateEnvelope = async (sessionId: string) => {
+    setGeneratingFor(sessionId);
+    const { error } = await supabase.rpc(
+      "get_or_create_cash_envelope_number" as never,
+      { p_register_session_id: sessionId } as never,
+    );
+    setGeneratingFor(null);
+    if (error) {
+      console.error("envelope generate failed", error);
+      toast.error(error.message ?? GENERIC_ERR);
+      return;
+    }
+    toast.success("Envelopnummer toegewezen");
+    await loadHistory();
+  };
+
+  const seqPreview = useMemo(() => {
+    const padded = String(Math.max(1, seqNext)).padStart(
+      Math.max(1, seqPadding),
+      "0",
+    );
+    return `${seqPrefix || "ENV"}-${seqYear}-${padded}`;
+  }, [seqPrefix, seqYear, seqNext, seqPadding]);
+
+  const handleSaveSequence = async () => {
+    if (!orgId) return;
+    setSeqSaving(true);
+    const { error } = await supabase.rpc(
+      "configure_cash_envelope_sequence" as never,
+      {
+        p_org_id: orgId,
+        p_year: seqYear,
+        p_prefix: seqPrefix || "ENV",
+        p_next_number: seqNext,
+        p_padding: seqPadding,
+      } as never,
+    );
+    setSeqSaving(false);
+    if (error) {
+      console.error("configure sequence failed", error);
+      toast.error(error.message ?? GENERIC_ERR);
+      return;
+    }
+    toast.success("Nummerreeks opgeslagen");
+    setSeqOpen(false);
+  };
+
   // ------- Render -------
   return (
     <>
-      <PageHeader title="Kasafsluiting" subtitle="Open of sluit je kassa en bekijk de geschiedenis." />
+      <PageHeader
+        title="Kasafsluiting"
+        subtitle="Open of sluit je kassa en bekijk de geschiedenis."
+        actions={
+          canManageSequence ? (
+            <Button variant="outline" size="sm" onClick={() => setSeqOpen(true)}>
+              <Settings2 className="mr-2 h-4 w-4" />
+              Nummerreeks
+            </Button>
+          ) : null
+        }
+      />
 
       {bootLoading ? (
         <div className="mx-auto w-full max-w-[480px]">
@@ -384,6 +497,9 @@ export default function Closing() {
             <h2 className="text-xl font-semibold">Kasafsluiting</h2>
             <p className="text-sm text-muted-foreground">
               Geopend om {formatDateTimeNL(session.opened_at)}
+            </p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Het envelopnummer wordt automatisch toegewezen bij het afsluiten.
             </p>
           </div>
 
@@ -507,6 +623,7 @@ export default function Closing() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Datum</TableHead>
+                  <TableHead>Envelop</TableHead>
                   <TableHead className="text-right">Openingsbedrag</TableHead>
                   <TableHead className="text-right">Verwacht</TableHead>
                   <TableHead className="text-right">Geteld</TableHead>
@@ -518,7 +635,7 @@ export default function Closing() {
                 {historyLoading ? (
                   Array.from({ length: 3 }).map((_, i) => (
                     <TableRow key={i}>
-                      <TableCell colSpan={6}>
+                      <TableCell colSpan={7}>
                         <Skeleton className="h-6 w-full" />
                       </TableCell>
                     </TableRow>
@@ -526,7 +643,7 @@ export default function Closing() {
                 ) : history.length === 0 ? (
                   <TableRow>
                     <TableCell
-                      colSpan={6}
+                      colSpan={7}
                       className="py-10 text-center text-sm text-muted-foreground"
                     >
                       Nog geen gesloten kassa's
@@ -540,6 +657,35 @@ export default function Closing() {
                       onClick={() => setDetail(row)}
                     >
                       <TableCell>{formatDateTimeNL(row.closed_at)}</TableCell>
+                      <TableCell onClick={(e) => e.stopPropagation()}>
+                        {row.envelope_number ? (
+                          <div className="flex items-center gap-1">
+                            <Badge variant="secondary" className="font-mono">
+                              {row.envelope_number}
+                            </Badge>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-6 w-6"
+                              onClick={() => copyToClipboard(row.envelope_number!)}
+                              aria-label="Kopieer envelopnummer"
+                            >
+                              <Copy className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        ) : canManageSequence ? (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            disabled={generatingFor === row.id}
+                            onClick={() => handleGenerateEnvelope(row.id)}
+                          >
+                            {generatingFor === row.id ? "Bezig…" : "Genereer"}
+                          </Button>
+                        ) : (
+                          <span className="text-muted-foreground">—</span>
+                        )}
+                      </TableCell>
                       <TableCell className="text-right tabular-nums">
                         {formatEUR(row.opening_float_cents)}
                       </TableCell>
@@ -596,6 +742,25 @@ export default function Closing() {
               </SheetHeader>
 
               <div className="mt-6 space-y-4 text-sm">
+                {detail.envelope_number && (
+                  <div className="flex items-center justify-between rounded-md border border-border bg-muted/30 p-3">
+                    <span className="text-muted-foreground">Envelopnummer</span>
+                    <div className="flex items-center gap-2">
+                      <Badge variant="secondary" className="font-mono text-sm">
+                        {detail.envelope_number}
+                      </Badge>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7"
+                        onClick={() => copyToClipboard(detail.envelope_number!)}
+                        aria-label="Kopieer envelopnummer"
+                      >
+                        <Copy className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  </div>
+                )}
                 <div className="flex items-center justify-between">
                   <span className="text-muted-foreground">Status</span>
                   <VarianceBadge cents={detail.variance_cents ?? 0} />
