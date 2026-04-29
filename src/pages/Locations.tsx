@@ -9,6 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { t } from "@/lib/i18n";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrg } from "@/context/OrgContext";
+import { LocationDialog, type LocationDialogRow } from "@/components/locations/LocationDialog";
 
 interface LocationRow {
   id: string;
@@ -18,6 +19,9 @@ interface LocationRow {
   address_street: string | null;
   address_postal_code: string | null;
   address_city: string | null;
+  address_country: string | null;
+  phone: string | null;
+  email: string | null;
 }
 
 function formatAddress(l: LocationRow): string | null {
@@ -34,6 +38,10 @@ export default function Locations() {
   const { currentOrg } = useOrg();
   const [rows, setRows] = useState<LocationRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [dialogMode, setDialogMode] = useState<"create" | "edit">("create");
+  const [editingLocation, setEditingLocation] = useState<LocationDialogRow | null>(null);
+  const [reloadTick, setReloadTick] = useState(0);
 
   useEffect(() => {
     if (!currentOrg) return;
@@ -42,7 +50,9 @@ export default function Locations() {
     (async () => {
       const { data, error } = await supabase
         .from("locations")
-        .select("id, name, is_primary, is_active, address_street, address_postal_code, address_city")
+        .select(
+          "id, name, is_primary, is_active, address_street, address_postal_code, address_city, address_country, phone, email",
+        )
         .eq("org_id", currentOrg.id)
         .order("is_primary", { ascending: false })
         .order("name", { ascending: true });
@@ -59,7 +69,21 @@ export default function Locations() {
     return () => {
       cancelled = true;
     };
-  }, [currentOrg]);
+  }, [currentOrg, reloadTick]);
+
+  const openCreate = () => {
+    setDialogMode("create");
+    setEditingLocation(null);
+    setDialogOpen(true);
+  };
+
+  const openEdit = (row: LocationRow) => {
+    setDialogMode("edit");
+    setEditingLocation(row);
+    setDialogOpen(true);
+  };
+
+  const handleSaved = () => setReloadTick((n) => n + 1);
 
   return (
     <>
@@ -67,7 +91,7 @@ export default function Locations() {
         title={tr.locations.title}
         subtitle={tr.locations.subtitle}
         action={
-          <Button className="gap-2">
+          <Button className="gap-2" onClick={openCreate}>
             <Plus className="h-4 w-4" />
             {tr.locations.newLocation}
           </Button>
@@ -94,7 +118,7 @@ export default function Locations() {
           <p className="text-sm text-muted-foreground">
             Geen locaties. Maak je eerste vestiging aan.
           </p>
-          <Button className="gap-2">
+          <Button className="gap-2" onClick={openCreate}>
             <Plus className="h-4 w-4" />
             {tr.locations.newLocation}
           </Button>
@@ -116,6 +140,11 @@ export default function Locations() {
                         {tr.locations.primary}
                       </Badge>
                     )}
+                    {!l.is_active && (
+                      <Badge variant="secondary" className="border-0">
+                        Inactief
+                      </Badge>
+                    )}
                   </div>
                   {address ? (
                     <p className="text-sm text-muted-foreground">{address}</p>
@@ -125,7 +154,7 @@ export default function Locations() {
                     </p>
                   )}
                 </div>
-                <Button variant="ghost" size="sm" className="gap-2">
+                <Button variant="ghost" size="sm" className="gap-2" onClick={() => openEdit(l)}>
                   <Pencil className="h-4 w-4" />
                   {tr.common.edit}
                 </Button>
@@ -133,6 +162,18 @@ export default function Locations() {
             );
           })}
         </div>
+      )}
+
+      {currentOrg && (
+        <LocationDialog
+          open={dialogOpen}
+          onOpenChange={setDialogOpen}
+          mode={dialogMode}
+          location={editingLocation}
+          orgId={currentOrg.id}
+          orgName={currentOrg.name}
+          onSaved={handleSaved}
+        />
       )}
     </>
   );
