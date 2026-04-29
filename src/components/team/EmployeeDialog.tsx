@@ -362,11 +362,70 @@ export function EmployeeDialog({ open, onOpenChange, employee }: Props) {
               <Label htmlFor="start_date">Startdatum</Label>
               <Input id="start_date" type="date" {...form.register("start_date")} />
             </div>
+            <div>
+              <Label htmlFor="end_date">Einddatum</Label>
+              <Input id="end_date" type="date" {...form.register("end_date")} />
+            </div>
           </div>
 
           <div>
             <Label htmlFor="notes">Notities</Label>
             <Textarea id="notes" rows={3} {...form.register("notes")} />
+          </div>
+
+          <div className="space-y-2">
+            <Label>Contract (PDF)</Label>
+            {contractFile ? (
+              <div className="flex items-center justify-between gap-2 rounded-md border border-border bg-muted/40 px-3 py-2">
+                <div className="flex min-w-0 items-center gap-2 text-sm">
+                  <FileText className="h-4 w-4 shrink-0 text-primary" />
+                  <span className="truncate">{contractFile.name}</span>
+                  <span className="shrink-0 text-xs text-muted-foreground">
+                    ({(contractFile.size / 1024 / 1024).toFixed(2)} MB)
+                  </span>
+                </div>
+                <Button type="button" size="sm" variant="ghost" onClick={clearContract}>
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            ) : employee?.contract_file_url && !contractCleared ? (
+              <div className="flex items-center justify-between gap-2 rounded-md border border-border bg-muted/40 px-3 py-2">
+                <div className="flex min-w-0 items-center gap-2 text-sm">
+                  <FileText className="h-4 w-4 shrink-0 text-primary" />
+                  <span className="truncate">{employee.contract_file_name ?? "contract.pdf"}</span>
+                </div>
+                <div className="flex shrink-0 items-center gap-1">
+                  {downloadUrl && (
+                    <Button type="button" size="sm" variant="ghost" asChild>
+                      <a href={downloadUrl} target="_blank" rel="noopener noreferrer">
+                        <Download className="h-4 w-4" />
+                      </a>
+                    </Button>
+                  )}
+                  <Button type="button" size="sm" variant="ghost" onClick={clearContract}>
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full justify-start gap-2"
+                onClick={() => fileInputRef.current?.click()}
+              >
+                <Upload className="h-4 w-4" />
+                PDF kiezen…
+              </Button>
+            )}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="application/pdf"
+              className="hidden"
+              onChange={handlePickFile}
+            />
+            <p className="text-xs text-muted-foreground">Max. 10 MB. Alleen PDF.</p>
           </div>
 
           {canSeeFinancial && (
