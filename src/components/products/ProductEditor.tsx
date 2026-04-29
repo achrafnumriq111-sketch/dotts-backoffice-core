@@ -461,6 +461,7 @@ export function ProductEditor({ open, productId, onOpenChange, onSaved }: Props)
   };
 
   return (
+    <>
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-3xl p-0 sm:max-w-3xl gap-0">
         <DialogHeader className="border-b px-6 py-4">
