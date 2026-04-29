@@ -20,6 +20,7 @@ import { usePositions, type Position } from "@/hooks/usePositions";
 import { EmployeeCard } from "@/components/team/EmployeeCard";
 import { EmployeeDialog } from "@/components/team/EmployeeDialog";
 import { PositionDialog } from "@/components/team/PositionDialog";
+import { PositionPermissionsTab } from "@/components/team/PositionPermissionsTab";
 import { formatPriceCents } from "@/lib/eur";
 
 type StatusFilter = "active" | "archived" | "all";
@@ -27,7 +28,7 @@ type StatusFilter = "active" | "archived" | "all";
 export default function Team() {
   const { currentOrg } = useOrg();
   const { canEdit, canSeeFinancial } = useTeamPermissions();
-  const [tab, setTab] = useState<"employees" | "positions">("employees");
+  const [tab, setTab] = useState<"employees" | "positions" | "permissions">("employees");
   const [search, setSearch] = useState("");
   const [positionFilter, setPositionFilter] = useState<string>("_all");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("active");
@@ -63,6 +64,7 @@ export default function Team() {
         <TabsList>
           <TabsTrigger value="employees">Medewerkers</TabsTrigger>
           {canEdit && <TabsTrigger value="positions">Functies</TabsTrigger>}
+          {canEdit && <TabsTrigger value="permissions">Rechten</TabsTrigger>}
         </TabsList>
 
         <TabsContent value="employees" className="mt-4 space-y-4">
