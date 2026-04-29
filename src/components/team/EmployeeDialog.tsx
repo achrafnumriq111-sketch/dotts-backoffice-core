@@ -91,7 +91,7 @@ interface Props {
 }
 
 export function EmployeeDialog({ open, onOpenChange, employee }: Props) {
-  const { currentOrg } = useOrg();
+  const { currentOrg, currentRole } = useOrg();
   const { canSeeFinancial } = useTeamPermissions();
   const { data: positions = [] } = usePositions(currentOrg?.id);
   const { data: priv } = useEmployeePrivate(employee?.id);
@@ -102,14 +102,33 @@ export function EmployeeDialog({ open, onOpenChange, employee }: Props) {
   const [contractCleared, setContractCleared] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [downloadUrl, setDownloadUrl] = useState<string | null>(null);
+  const [posOpen, setPosOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const isEdit = !!employee;
+
+  const canEditRole = currentRole === "owner" || currentRole === "admin";
+  const hasLinkedAccount = !!employee?.user_id;
+
+  const { data: targetRole } = useQuery({
+    queryKey: ["employee-role", employee?.id, employee?.user_id, currentOrg?.id],
+    enabled: !!employee?.user_id && !!currentOrg?.id && open,
+    queryFn: async (): Promise<RoleValue | null> => {
+      const { data, error } = await supabase
+        .from("org_members")
+        .select("role")
+        .eq("org_id", currentOrg!.id)
+        .eq("user_id", employee!.user_id!)
+        .maybeSingle();
+      if (error) throw error;
+      return (data?.role ?? null) as RoleValue | null;
+    },
+  });
 
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: {
       first_name: "", last_name: "", email: "", phone: "",
-      position_id: "", employment_type: "flex",
+      position_id: "", position_name: "", role: undefined, employment_type: "flex",
       contract_hours_per_week: "", start_date: "", end_date: "", notes: "",
       bsn: "", iban: "", birthdate: "", hourly_wage: "",
       emergency_contact_name: "", emergency_contact_phone: "",
@@ -128,6 +147,8 @@ export function EmployeeDialog({ open, onOpenChange, employee }: Props) {
       email: employee?.email ?? "",
       phone: employee?.phone ?? "",
       position_id: employee?.position_id ?? "",
+      position_name: employee?.positions?.name ?? "",
+      role: (targetRole ?? undefined) as RoleValue | undefined,
       employment_type: mappedType,
       contract_hours_per_week: employee?.contract_hours_per_week
         ? String(employee.contract_hours_per_week).replace(".", ",")
@@ -146,7 +167,7 @@ export function EmployeeDialog({ open, onOpenChange, employee }: Props) {
     setContractFile(null);
     setContractCleared(false);
     setDownloadUrl(null);
-  }, [open, employee, priv, form]);
+  }, [open, employee, priv, targetRole, form]);
 
   // Generate signed URL for existing contract.
   useEffect(() => {
