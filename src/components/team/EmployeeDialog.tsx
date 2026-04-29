@@ -2,8 +2,8 @@ import { useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { ChevronDown, ChevronRight, ShieldAlert, Upload, FileText, X, Download } from "lucide-react";
-import { useQueryClient } from "@tanstack/react-query";
+import { ChevronDown, ChevronRight, ShieldAlert, Upload, FileText, X, Download, Check, ChevronsUpDown } from "lucide-react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrg } from "@/context/OrgContext";
@@ -30,6 +30,20 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import { cn } from "@/lib/utils";
 import type { Employee } from "@/hooks/useEmployees";
 import { AccountLinkSection } from "./AccountLinkSection";
 
@@ -38,14 +52,22 @@ const EMPLOYMENT_LABELS: Record<string, string> = {
   vast: "Vast", flex: "Tijdelijk", oproep: "Oproep",
 };
 
+const ROLE_VALUES = ["owner", "admin", "manager", "staff"] as const;
+type RoleValue = typeof ROLE_VALUES[number];
+const ROLE_LABELS: Record<RoleValue, string> = {
+  owner: "Owner", admin: "Admin", manager: "Manager", staff: "Staff",
+};
+
 const MAX_CONTRACT_BYTES = 10 * 1024 * 1024; // 10 MB
 
 const schema = z.object({
   first_name: z.string().trim().min(1, "Voornaam is verplicht").max(100),
   last_name: z.string().trim().min(1, "Achternaam is verplicht").max(100),
-  email: z.string().trim().email("Ongeldig e-mailadres").max(255).optional().or(z.literal("")),
+  email: z.string().trim().min(1, "E-mail is verplicht").email("Ongeldig e-mailadres").max(255),
   phone: z.string().trim().max(50).optional().or(z.literal("")),
   position_id: z.string().optional(),
+  position_name: z.string().trim().max(100).optional().or(z.literal("")),
+  role: z.enum(ROLE_VALUES).optional(),
   employment_type: z.enum(EMPLOYMENT_TYPES),
   contract_hours_per_week: z.string().optional(),
   start_date: z.string().optional(),
