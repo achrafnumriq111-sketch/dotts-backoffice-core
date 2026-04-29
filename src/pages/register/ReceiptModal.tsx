@@ -16,6 +16,8 @@ import { ReceiptView, type ReceiptSale } from "@/components/receipt/ReceiptView"
 import type { OrgFull } from "@/context/OrgContext";
 import { supabase } from "@/integrations/supabase/client";
 import { buildReceiptHtml } from "@/lib/buildReceiptHtml";
+import { useOrg } from "@/context/OrgContext";
+import { usePositionPermissions } from "@/hooks/usePositionPermissions";
 
 interface Props {
   open: boolean;
@@ -29,6 +31,8 @@ export function ReceiptModal({ open, data, org, onClose, onNewOrder }: Props) {
   const [emailOpen, setEmailOpen] = useState(false);
   const [emailValue, setEmailValue] = useState("");
   const [emailSubmitting, setEmailSubmitting] = useState(false);
+  const { currentOrg } = useOrg();
+  const { canEmailReceipt } = usePositionPermissions(currentOrg?.id);
 
   if (!data) return null;
 
@@ -117,16 +121,18 @@ export function ReceiptModal({ open, data, org, onClose, onNewOrder }: Props) {
         </div>
 
         <div className="flex flex-col gap-2 sm:flex-row">
-          <Button
-            variant="outline"
-            className="flex-1"
-            onClick={() => {
-              setEmailValue("");
-              setEmailOpen(true);
-            }}
-          >
-            Mail bon
-          </Button>
+          {canEmailReceipt && (
+            <Button
+              variant="outline"
+              className="flex-1"
+              onClick={() => {
+                setEmailValue("");
+                setEmailOpen(true);
+              }}
+            >
+              Mail bon
+            </Button>
+          )}
           <Button variant="outline" className="flex-1" onClick={onClose}>
             Sluiten
           </Button>
