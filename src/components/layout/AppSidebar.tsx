@@ -45,6 +45,7 @@ const items = [
 
 const productsSubItems = [
   { titleKey: "productsAll", url: "/producten", end: true },
+  { titleKey: "productsCategories", url: "/producten/categorieen", end: true },
   { titleKey: "productsModifierGroups", url: "/producten/modifier-groepen", end: true },
 ] as const;
 
