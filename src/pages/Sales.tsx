@@ -69,6 +69,7 @@ import { formatPriceCents } from "@/lib/eur";
 import { ReceiptView, type ReceiptSale } from "@/components/receipt/ReceiptView";
 import { cn } from "@/lib/utils";
 import { buildReceiptHtml } from "@/lib/buildReceiptHtml";
+import { usePositionPermissions } from "@/hooks/usePositionPermissions";
 
 type DateRangeKey = "today" | "yesterday" | "week" | "month" | "custom";
 type PaymentFilter = "all" | "cash" | "pin";
@@ -183,6 +184,7 @@ function statusBadge(status: string, voided?: boolean) {
 
 export default function Sales() {
   const { currentOrg, currentOrgFull } = useOrg();
+  const { canVoidSale, canEmailReceipt } = usePositionPermissions(currentOrg?.id);
 
   const [rangeKey, setRangeKey] = useState<DateRangeKey>("today");
   const [customFrom, setCustomFrom] = useState<string>("");
@@ -699,18 +701,20 @@ export default function Sales() {
               )}
 
               <div className="mt-4 flex justify-end">
-                <Button
-                  variant="destructive"
-                  size="sm"
-                  disabled={detail.voided}
-                  onClick={() => {
-                    setStornoReason("");
-                    setStornoOpen(true);
-                  }}
-                >
-                  <Ban className="mr-2 h-4 w-4" />
-                  Storneer verkoop
-                </Button>
+                {canVoidSale && (
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    disabled={detail.voided}
+                    onClick={() => {
+                      setStornoReason("");
+                      setStornoOpen(true);
+                    }}
+                  >
+                    <Ban className="mr-2 h-4 w-4" />
+                    Storneer verkoop
+                  </Button>
+                )}
               </div>
 
               <div className="mt-4 flex justify-center">
@@ -766,6 +770,8 @@ export default function Sales() {
                     setEmailValue(detail.customer_email ?? "");
                     setEmailOpen(true);
                   }}
+                  hidden={!canEmailReceipt}
+                  className={canEmailReceipt ? undefined : "hidden"}
                 >
                   Mail bon
                 </Button>
