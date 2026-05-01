@@ -15,7 +15,7 @@ import type { SaleSuccess } from "./types";
 import { ReceiptView, type ReceiptSale } from "@/components/receipt/ReceiptView";
 import type { OrgFull } from "@/context/OrgContext";
 import { supabase } from "@/integrations/supabase/client";
-import { buildReceiptHtml } from "@/lib/buildReceiptHtml";
+// receipt HTML is now generated server-side in the email-receipt edge function
 import { useOrg } from "@/context/OrgContext";
 import { usePositionPermissions } from "@/hooks/usePositionPermissions";
 
