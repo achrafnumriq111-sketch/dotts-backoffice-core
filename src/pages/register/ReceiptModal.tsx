@@ -15,7 +15,7 @@ import type { SaleSuccess } from "./types";
 import { ReceiptView, type ReceiptSale } from "@/components/receipt/ReceiptView";
 import type { OrgFull } from "@/context/OrgContext";
 import { supabase } from "@/integrations/supabase/client";
-import { buildReceiptHtml } from "@/lib/buildReceiptHtml";
+// receipt HTML is now generated server-side in the email-receipt edge function
 import { useOrg } from "@/context/OrgContext";
 import { usePositionPermissions } from "@/hooks/usePositionPermissions";
 
@@ -83,15 +83,10 @@ export function ReceiptModal({ open, data, org, onClose, onNewOrder }: Props) {
       return;
     }
     setEmailSubmitting(true);
-    const html = buildReceiptHtml(org, sale);
-    const orgLabel = org?.name ?? "Dotts";
-    const subject = `Bon ${data.receipt_number} — ${orgLabel}`;
     const { data: resp, error } = await supabase.functions.invoke("email-receipt", {
       body: {
         sale_id: data.sale_id,
         recipient_email: email,
-        subject,
-        html,
       },
     });
     setEmailSubmitting(false);

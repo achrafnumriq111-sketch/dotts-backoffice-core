@@ -68,7 +68,7 @@ import { useOrg } from "@/context/OrgContext";
 import { formatPriceCents } from "@/lib/eur";
 import { ReceiptView, type ReceiptSale } from "@/components/receipt/ReceiptView";
 import { cn } from "@/lib/utils";
-import { buildReceiptHtml } from "@/lib/buildReceiptHtml";
+// receipt HTML is now generated server-side in the email-receipt edge function
 import { usePositionPermissions } from "@/hooks/usePositionPermissions";
 
 type DateRangeKey = "today" | "yesterday" | "week" | "month" | "custom";
@@ -414,40 +414,6 @@ export default function Sales() {
     return msg;
   };
 
-  const buildReceiptSaleFromDetail = (d: SaleDetail): ReceiptSale => {
-    const taxByRate = Object.entries(
-      d.sale_items.reduce<Record<number, number>>((acc, it) => {
-        acc[it.tax_rate_bps_snapshot] =
-          (acc[it.tax_rate_bps_snapshot] ?? 0) + it.line_tax_cents;
-        return acc;
-      }, {}),
-    ).map(([bps, vat]) => ({ rate_bps: Number(bps), vat_cents: vat }));
-    const firstPayment = d.payments[0];
-    return {
-      receipt_number: d.receipt_number,
-      created_at: d.created_at,
-      subtotal_cents: d.subtotal_cents,
-      total_cents: d.total_cents,
-      tax_by_rate: taxByRate,
-      location_name: d.locations?.name ?? null,
-      lines: d.sale_items.map((it) => ({
-        key: it.id,
-        quantity: Number(it.quantity),
-        productName: it.name_snapshot,
-        variantName: it.variant_name,
-        unitPriceCents: it.price_cents_snapshot,
-        lineTotalCents: it.line_total_cents,
-        modifiers: (it.modifiers ?? []) as { name: string; price_cents: number }[],
-      })),
-      payment: {
-        method: (firstPayment?.method as "cash" | "pin") ?? "pin",
-        amount_cents: firstPayment?.amount_cents ?? d.total_cents,
-        tendered_cents: firstPayment?.tendered_cents,
-        change_cents: firstPayment?.change_cents,
-      },
-    };
-  };
-
   const handleEmailReceipt = async () => {
     if (!detail) return;
     const email = emailValue.trim();
@@ -456,16 +422,10 @@ export default function Sales() {
       return;
     }
     setEmailSubmitting(true);
-    const receiptSale = buildReceiptSaleFromDetail(detail);
-    const html = buildReceiptHtml(currentOrgFull, receiptSale);
-    const orgLabel = currentOrgFull?.name ?? "Dotts";
-    const subject = `Bon ${detail.receipt_number ?? detail.id} — ${orgLabel}`;
     const { data, error } = await supabase.functions.invoke("email-receipt", {
       body: {
         sale_id: detail.id,
         recipient_email: email,
-        subject,
-        html,
       },
     });
     setEmailSubmitting(false);
