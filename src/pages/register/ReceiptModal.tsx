@@ -83,15 +83,10 @@ export function ReceiptModal({ open, data, org, onClose, onNewOrder }: Props) {
       return;
     }
     setEmailSubmitting(true);
-    const html = buildReceiptHtml(org, sale);
-    const orgLabel = org?.name ?? "Dotts";
-    const subject = `Bon ${data.receipt_number} — ${orgLabel}`;
     const { data: resp, error } = await supabase.functions.invoke("email-receipt", {
       body: {
         sale_id: data.sale_id,
         recipient_email: email,
-        subject,
-        html,
       },
     });
     setEmailSubmitting(false);

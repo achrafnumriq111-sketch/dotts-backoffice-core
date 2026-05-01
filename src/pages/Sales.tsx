@@ -456,16 +456,10 @@ export default function Sales() {
       return;
     }
     setEmailSubmitting(true);
-    const receiptSale = buildReceiptSaleFromDetail(detail);
-    const html = buildReceiptHtml(currentOrgFull, receiptSale);
-    const orgLabel = currentOrgFull?.name ?? "Dotts";
-    const subject = `Bon ${detail.receipt_number ?? detail.id} — ${orgLabel}`;
     const { data, error } = await supabase.functions.invoke("email-receipt", {
       body: {
         sale_id: detail.id,
         recipient_email: email,
-        subject,
-        html,
       },
     });
     setEmailSubmitting(false);
