@@ -2202,6 +2202,12 @@ export type Database = {
         }
         Returns: string
       }
+      user_admin_org_ids: {
+        Args: never
+        Returns: {
+          org_id: string
+        }[]
+      }
       user_org_ids: {
         Args: never
         Returns: {

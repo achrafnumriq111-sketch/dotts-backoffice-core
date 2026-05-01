@@ -26,11 +26,14 @@ export const PERMISSION_LABELS: Record<PermissionKey, string> = {
 
 export type PositionPermissions = Partial<Record<PermissionKey, boolean>>;
 
-// Default to true when key absent (safe-by-default per spec).
+// Default to false when key absent or no position assigned.
+// Safe-by-default: an unassigned employee sees no POS actions until
+// permissions are explicitly granted. The `requires_email` key is an
+// exception — it defaults to false (don't force email if unset).
 export function getPermission(perms: PositionPermissions | null | undefined, key: PermissionKey): boolean {
-  if (!perms) return true;
+  if (!perms) return false;
   const v = (perms as Record<string, unknown>)[key];
-  if (v === undefined || v === null) return true;
+  if (v === undefined || v === null) return false;
   return Boolean(v);
 }
 
