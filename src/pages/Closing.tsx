@@ -224,11 +224,12 @@ export default function Closing() {
   }, [orgId]);
 
   const loadShiftSales = useCallback(async () => {
-    if (!session || !locationId) return;
+    if (!session || !locationId || !orgId) return;
     setSalesLoading(true);
     const { data, error } = await supabase
       .from("sales")
       .select("id, total_cents, payments(method)")
+      .eq("org_id", orgId)
       .eq("location_id", locationId)
       .eq("status", "completed")
       .eq("voided", false)
@@ -252,7 +253,7 @@ export default function Closing() {
     setPinTotal(pin);
     setSaleCount(data?.length ?? 0);
     setSalesLoading(false);
-  }, [session, locationId]);
+  }, [session, locationId, orgId]);
 
   const loadHistory = useCallback(async () => {
     if (!orgId) return;
