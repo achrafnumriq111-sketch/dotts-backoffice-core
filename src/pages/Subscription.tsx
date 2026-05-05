@@ -43,6 +43,8 @@ interface InvoiceRow {
   kind: string;
   amount_cents: number;
   status: string;
+  hosted_invoice_url?: string | null;
+  invoice_pdf_url?: string | null;
 }
 
 const SUBSCRIPTION_STATUS_MAP: Record<SubscriptionStatus, { label: string; className: string }> = {
