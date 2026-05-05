@@ -35,7 +35,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             if (data) {
               toast.success("Welkom! Je profiel is automatisch gekoppeld.");
               qc.invalidateQueries({ queryKey: ["employees"] });
-              qc.invalidateQueries({ queryKey: ["my-employee-id"] });
+              qc.invalidateQueries({ queryKey: ["my_employee_id"] });
               qc.invalidateQueries({ queryKey: ["timeoff-pending-count"] });
               qc.invalidateQueries({ queryKey: ["shifts-draft-count"] });
             }

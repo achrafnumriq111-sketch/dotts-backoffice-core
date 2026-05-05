@@ -8,6 +8,8 @@ import { OrgProvider } from "@/context/OrgContext";
 import { NotificationsProvider } from "@/context/NotificationsContext";
 import { RequireAuth } from "@/components/auth/RequireAuth";
 import { AppLayout } from "@/components/layout/AppLayout";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { toast } from "sonner";
 
 import Dashboard from "./pages/Dashboard";
 import Register from "./pages/Register";
@@ -31,14 +33,27 @@ import NotFound from "./pages/NotFound";
 import Welcome from "./pages/Welcome";
 import AuthCallback from "./pages/AuthCallback";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: 1,
+    },
+    mutations: {
+      onError: (err: unknown) => {
+        const msg = err instanceof Error ? err.message : "Er ging iets mis";
+        toast.error(msg);
+      },
+    },
+  },
+});
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <Toaster />
       <Sonner />
-      <AuthProvider>
+      <ErrorBoundary>
+        <AuthProvider>
         <BrowserRouter>
           <Routes>
             {/* Public routes (no auth required) */}
@@ -64,10 +79,10 @@ const App = () => (
                           <Route path="/kasafsluiting" element={<Closing />} />
                           <Route path="/locaties" element={<Locations />} />
                           <Route path="/team" element={<Team />} />
-                          <Route path="/team/:employeeId" element={<EmployeeDetail />} />
                           <Route path="/team/beschikbaarheid" element={<TeamBeschikbaarheid />} />
                           <Route path="/team/verlof" element={<TeamVerlof />} />
                           <Route path="/team/roosters" element={<TeamRoosters />} />
+                          <Route path="/team/:employeeId" element={<EmployeeDetail />} />
                           <Route path="/mijn/beschikbaarheid" element={<MijnBeschikbaarheid />} />
                           <Route path="/mijn/verlof" element={<MijnVerlof />} />
                           <Route path="/mijn/rooster" element={<MijnRooster />} />
@@ -83,7 +98,8 @@ const App = () => (
             />
           </Routes>
         </BrowserRouter>
-      </AuthProvider>
+        </AuthProvider>
+      </ErrorBoundary>
     </TooltipProvider>
   </QueryClientProvider>
 );

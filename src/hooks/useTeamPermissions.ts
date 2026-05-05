@@ -5,9 +5,11 @@ export function useTeamPermissions() {
   const { currentRole, currentOrg } = useOrg();
   const { data: myEmployeeId } = useMyEmployeeId(currentOrg?.id);
   const canView = !!currentRole;
-  const canEdit = currentRole === "owner" || currentRole === "admin";
+  const canEdit =
+    currentRole === "owner" || currentRole === "admin" || currentRole === "manager";
   const canSeeFinancial = currentRole === "owner";
-  const canReviewTimeOff = currentRole === "owner" || currentRole === "admin";
+  const canReviewTimeOff =
+    currentRole === "owner" || currentRole === "admin" || currentRole === "manager";
   return {
     canView,
     canEdit,

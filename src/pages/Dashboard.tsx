@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { fromZonedTime } from "date-fns-tz";
 import { ArrowUpRight, ArrowDownRight, Receipt, ShoppingBag, Users, Wallet } from "lucide-react";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,34 +12,15 @@ const TZ = "Europe/Amsterdam";
 
 /** Returns the start of "today" in Europe/Amsterdam, expressed as a UTC Date. */
 function startOfTodayAmsterdam(): Date {
-  const now = new Date();
-  // Get YYYY-MM-DD parts in Amsterdam timezone
   const fmt = new Intl.DateTimeFormat("en-CA", {
     timeZone: TZ,
     year: "numeric",
     month: "2-digit",
     day: "2-digit",
   });
-  const parts = fmt.formatToParts(now);
+  const parts = fmt.formatToParts(new Date());
   const get = (type: string) => parts.find((p) => p.type === type)?.value ?? "";
-  const y = get("year");
-  const m = get("month");
-  const d = get("day");
-  // Compute the UTC instant matching local Amsterdam midnight by trying both
-  // possible offsets (DST-safe).
-  const guess = new Date(`${y}-${m}-${d}T00:00:00Z`);
-  // Determine offset of Amsterdam at this instant
-  const tzFmt = new Intl.DateTimeFormat("en-US", {
-    timeZone: TZ,
-    timeZoneName: "shortOffset",
-  });
-  const tzParts = tzFmt.formatToParts(guess);
-  const tzName = tzParts.find((p) => p.type === "timeZoneName")?.value ?? "GMT+1";
-  const match = /GMT([+-]\d+)(?::(\d+))?/.exec(tzName);
-  const offsetH = match ? parseInt(match[1], 10) : 1;
-  const offsetM = match && match[2] ? parseInt(match[2], 10) : 0;
-  const totalOffsetMin = offsetH * 60 + (offsetH < 0 ? -offsetM : offsetM);
-  return new Date(guess.getTime() - totalOffsetMin * 60_000);
+  return fromZonedTime(`${get("year")}-${get("month")}-${get("day")}T00:00:00`, TZ);
 }
 
 interface DayStats {

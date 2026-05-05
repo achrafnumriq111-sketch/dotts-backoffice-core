@@ -24,8 +24,10 @@ export default function Welcome() {
       hash.includes("type=recovery") ||
       hash.includes("type=signup");
 
-    const t = setTimeout(async () => {
+    let cancelled = false;
+    const check = async () => {
       const { data } = await supabase.auth.getSession();
+      if (cancelled) return;
       if (data.session) {
         if (isInviteFlow) {
           setMode("set-password");
@@ -35,8 +37,19 @@ export default function Welcome() {
       } else {
         setMode("not-logged-in");
       }
-    }, 500);
-    return () => clearTimeout(t);
+    };
+    void check();
+    const sub = supabase.auth.onAuthStateChange((_e, sess) => {
+      if (cancelled) return;
+      if (sess) {
+        if (isInviteFlow) setMode("set-password");
+        else window.location.replace("/mijn/rooster");
+      }
+    });
+    return () => {
+      cancelled = true;
+      sub.data.subscription.unsubscribe();
+    };
   }, []);
 
   const submit = async (e: React.FormEvent) => {

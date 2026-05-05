@@ -330,8 +330,8 @@ export default function Sales() {
 
   const reloadAfterStorno = async () => {
     if (!currentOrg) return;
-    // Refresh list
-    const { data: listData } = await supabase
+    // Refresh list — preserve current search/filter selections.
+    let q = supabase
       .from("sales")
       .select(
         "id, receipt_number, created_at, total_cents, status, voided, location_id, sale_items(count), payments(method, amount_cents)",
@@ -341,6 +341,17 @@ export default function Sales() {
       .lte("created_at", dateRange.to.toISOString())
       .order("created_at", { ascending: false })
       .limit(200);
+    if (searchReceipt.trim()) {
+      q = q.ilike("receipt_number", `%${searchReceipt.trim()}%`);
+    }
+    if (statusFilter !== "all") {
+      if (statusFilter === "voided") {
+        q = q.eq("voided", true);
+      } else {
+        q = q.eq("voided", false).eq("status", "completed");
+      }
+    }
+    const { data: listData } = await q;
     setRows((listData ?? []) as SaleRow[]);
     // Refresh detail
     if (selectedId) {

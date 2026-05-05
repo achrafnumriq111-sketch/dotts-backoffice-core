@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
+import { fromZonedTime } from "date-fns-tz";
 import { nl } from "date-fns/locale";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -32,12 +33,16 @@ interface Props {
   contextByEmployee: Map<string, EmployeeContext>;
 }
 
+const TZ = "Europe/Amsterdam";
 function combine(date: Date, time: string): string {
-  // returns ISO with local tz offset
-  const [h, m] = time.split(":").map((x) => parseInt(x, 10));
-  const d = new Date(date);
-  d.setHours(h, m, 0, 0);
-  return d.toISOString();
+  // Always interpret the wall-clock time in Europe/Amsterdam, regardless
+  // of the browser's timezone, then convert to UTC ISO.
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
+  const [h, mi] = time.split(":");
+  const local = `${y}-${m}-${d}T${h.padStart(2, "0")}:${mi.padStart(2, "0")}:00`;
+  return fromZonedTime(local, TZ).toISOString();
 }
 
 function pickTime(iso: string): string {

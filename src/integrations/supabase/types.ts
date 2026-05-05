@@ -329,7 +329,9 @@ export type Database = {
           currency: string
           description: string | null
           due_at: string | null
+          hosted_invoice_url: string | null
           id: string
+          invoice_pdf_url: string | null
           kind: string
           org_id: string
           paid_at: string | null
@@ -346,7 +348,9 @@ export type Database = {
           currency?: string
           description?: string | null
           due_at?: string | null
+          hosted_invoice_url?: string | null
           id?: string
+          invoice_pdf_url?: string | null
           kind: string
           org_id: string
           paid_at?: string | null
@@ -363,7 +367,9 @@ export type Database = {
           currency?: string
           description?: string | null
           due_at?: string | null
+          hosted_invoice_url?: string | null
           id?: string
+          invoice_pdf_url?: string | null
           kind?: string
           org_id?: string
           paid_at?: string | null

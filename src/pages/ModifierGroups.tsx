@@ -90,11 +90,11 @@ export default function ModifierGroups() {
     }));
     setGroups(mapped);
     setLoading(false);
-    if (!selectedId && mapped.length > 0) setSelectedId(mapped[0].id);
-    if (selectedId && !mapped.some((g) => g.id === selectedId)) {
-      setSelectedId(mapped[0]?.id ?? null);
-    }
-  }, [currentOrg, selectedId]);
+    setSelectedId((prev) => {
+      if (prev && mapped.some((g) => g.id === prev)) return prev;
+      return mapped[0]?.id ?? null;
+    });
+  }, [currentOrg]);
 
   useEffect(() => {
     void fetchGroups();

@@ -1,15 +1,28 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
-};
+const ALLOWED_ORIGINS = new Set([
+  "https://app.mydotts.nl",
+  "https://dotts-backoffice-core.lovable.app",
+]);
+const ALLOWED_ORIGIN_RE =
+  /^https:\/\/(?:[a-z0-9-]+--)?83a69c11-2366-4913-a015-a59c4201dd77\.lovable\.app$/i;
 
-const json = (body: unknown, status = 200) =>
+function corsFor(req: Request): Record<string, string> {
+  const origin = req.headers.get("origin") ?? "";
+  const allow = ALLOWED_ORIGINS.has(origin) || ALLOWED_ORIGIN_RE.test(origin);
+  return {
+    "Access-Control-Allow-Origin": allow ? origin : "https://app.mydotts.nl",
+    "Vary": "Origin",
+    "Access-Control-Allow-Headers":
+      "authorization, x-client-info, apikey, content-type",
+    "Access-Control-Allow-Methods": "POST, OPTIONS",
+  };
+}
+
+const json = (req: Request, body: unknown, status = 200) =>
   new Response(JSON.stringify(body), {
     status,
-    headers: { ...corsHeaders, "Content-Type": "application/json" },
+    headers: { ...corsFor(req), "Content-Type": "application/json" },
   });
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -47,10 +60,57 @@ function formatDateTimeNL(iso: string): string {
   }).format(new Date(iso));
 }
 
-type OrgRow = Record<string, any>;
-type SaleRow = Record<string, any>;
-type SaleItemRow = Record<string, any>;
-type PaymentRow = Record<string, any>;
+interface OrgRow {
+  id: string;
+  name?: string | null;
+  legal_name?: string | null;
+  logo_url?: string | null;
+  receipt_show_logo?: boolean | null;
+  receipt_show_address?: boolean | null;
+  receipt_show_kvk?: boolean | null;
+  receipt_show_vat_number?: boolean | null;
+  receipt_show_contact?: boolean | null;
+  receipt_footer?: string | null;
+  primary_color?: string | null;
+  street?: string | null;
+  city?: string | null;
+  postal_code?: string | null;
+  country?: string | null;
+  phone?: string | null;
+  email?: string | null;
+  website?: string | null;
+  kvk_number?: string | null;
+  vat_number?: string | null;
+}
+interface SaleRow {
+  id: string;
+  org_id: string;
+  receipt_number: string;
+  created_at: string;
+  subtotal_cents: number;
+  tax_cents: number;
+  discount_cents: number;
+  total_cents: number;
+  location_id: string | null;
+}
+interface SaleItemRow {
+  id: string;
+  name_snapshot: string;
+  variant_name: string | null;
+  quantity: number;
+  price_cents_snapshot: number;
+  line_subtotal_cents: number;
+  line_total_cents: number;
+  line_tax_cents: number;
+  tax_rate_bps_snapshot: number;
+  modifiers: Array<{ name: string; price_delta_cents: number }>;
+}
+interface PaymentRow {
+  method: string;
+  amount_cents: number;
+  tendered_cents: number | null;
+  change_cents: number | null;
+}
 
 function buildHtml(org: OrgRow, sale: SaleRow, items: SaleItemRow[], payment: PaymentRow | null, locationName: string | null): string {
   const showLogo = org.receipt_show_logo !== false && !!org.logo_url;
@@ -219,13 +279,13 @@ function buildHtml(org: OrgRow, sale: SaleRow, items: SaleItemRow[], payment: Pa
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders });
+    return new Response("ok", { headers: corsFor(req) });
   }
 
   try {
     const authHeader = req.headers.get("Authorization") ?? "";
     if (!authHeader.startsWith("Bearer ")) {
-      return json({ error: "unauthorized" }, 401);
+      return json(req, { error: "unauthorized" }, 401);
     }
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
@@ -233,7 +293,7 @@ Deno.serve(async (req) => {
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const brevoKey = Deno.env.get("BREVO_API_KEY");
     if (!brevoKey) {
-      return json({ error: "brevo_not_configured" }, 500);
+      return json(req, { error: "brevo_not_configured" }, 500);
     }
 
     // Identify caller via JWT
@@ -242,7 +302,7 @@ Deno.serve(async (req) => {
     });
     const { data: userData, error: userErr } = await userClient.auth.getUser();
     if (userErr || !userData?.user) {
-      return json({ error: "unauthorized" }, 401);
+      return json(req, { error: "unauthorized" }, 401);
     }
     const userId = userData.user.id;
 
@@ -251,14 +311,14 @@ Deno.serve(async (req) => {
     try {
       body = await req.json();
     } catch {
-      return json({ error: "invalid_json" }, 400);
+      return json(req, { error: "invalid_json" }, 400);
     }
     const saleId = typeof body?.sale_id === "string" ? body.sale_id.trim() : "";
     const recipientEmail =
       typeof body?.recipient_email === "string" ? body.recipient_email.trim() : "";
-    if (!saleId) return json({ error: "sale_id_required" }, 400);
+    if (!saleId) return json(req, { error: "sale_id_required" }, 400);
     if (!recipientEmail || !EMAIL_RE.test(recipientEmail) || recipientEmail.length > 254) {
-      return json({ error: "invalid_email" }, 400);
+      return json(req, { error: "invalid_email" }, 400);
     }
 
     // Fetch sale + org + items + payment with service role, then enforce membership
@@ -271,9 +331,9 @@ Deno.serve(async (req) => {
       .maybeSingle();
     if (saleErr) {
       console.error("sale fetch error", saleErr);
-      return json({ error: "sale_not_found" }, 404);
+      return json(req, { error: "sale_not_found" }, 404);
     }
-    if (!sale) return json({ error: "sale_not_found" }, 404);
+    if (!sale) return json(req, { error: "sale_not_found" }, 404);
 
     const { data: membership } = await admin
       .from("org_members")
@@ -282,7 +342,7 @@ Deno.serve(async (req) => {
       .eq("user_id", userId)
       .maybeSingle();
     if (!membership) {
-      return json({ error: "forbidden" }, 403);
+      return json(req, { error: "forbidden" }, 403);
     }
 
     const [{ data: org }, { data: items }, { data: payments }, { data: location }] =
@@ -295,7 +355,7 @@ Deno.serve(async (req) => {
           : Promise.resolve({ data: null }),
       ]);
 
-    if (!org) return json({ error: "org_not_found" }, 404);
+    if (!org) return json(req, { error: "org_not_found" }, 404);
 
     const html = buildHtml(
       org as OrgRow,
@@ -327,7 +387,7 @@ Deno.serve(async (req) => {
     if (!brevoRes.ok) {
       const txt = await brevoRes.text();
       console.error("brevo failed", brevoRes.status, txt);
-      return json({ error: "brevo_failed" }, 502);
+      return json(req, { error: "brevo_failed" }, 502);
     }
 
     await admin
@@ -338,9 +398,9 @@ Deno.serve(async (req) => {
       })
       .eq("id", saleId);
 
-    return json({ ok: true });
+    return json(req, { ok: true });
   } catch (e) {
     console.error("email-receipt fatal", e);
-    return json({ error: "internal_error" }, 500);
+    return json(req, { error: "internal_error" }, 500);
   }
 });

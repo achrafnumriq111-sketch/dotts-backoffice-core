@@ -224,11 +224,12 @@ export default function Closing() {
   }, [orgId]);
 
   const loadShiftSales = useCallback(async () => {
-    if (!session || !locationId) return;
+    if (!session || !locationId || !orgId) return;
     setSalesLoading(true);
     const { data, error } = await supabase
       .from("sales")
       .select("id, total_cents, payments(method)")
+      .eq("org_id", orgId)
       .eq("location_id", locationId)
       .eq("status", "completed")
       .eq("voided", false)
@@ -252,7 +253,7 @@ export default function Closing() {
     setPinTotal(pin);
     setSaleCount(data?.length ?? 0);
     setSalesLoading(false);
-  }, [session, locationId]);
+  }, [session, locationId, orgId]);
 
   const loadHistory = useCallback(async () => {
     if (!orgId) return;
@@ -432,6 +433,28 @@ export default function Closing() {
     setSeqOpen(false);
   };
 
+  const openSequenceDialog = useCallback(async () => {
+    setSeqOpen(true);
+    if (!orgId) return;
+    const year = new Date().getFullYear();
+    const { data, error } = await supabase
+      .from("cash_envelope_sequences")
+      .select("prefix, current_value, padding, year")
+      .eq("org_id", orgId)
+      .eq("year", year)
+      .maybeSingle();
+    if (error) {
+      console.error("seq load failed", error);
+      return;
+    }
+    if (data) {
+      setSeqPrefix(data.prefix ?? "ENV");
+      setSeqYear(data.year ?? year);
+      setSeqNext((data.current_value ?? 0) + 1);
+      setSeqPadding(data.padding ?? 4);
+    }
+  }, [orgId]);
+
   // ------- Render -------
   return (
     <>
@@ -440,7 +463,7 @@ export default function Closing() {
         subtitle="Open of sluit je kassa en bekijk de geschiedenis."
         action={
           canManageSequence ? (
-            <Button variant="outline" size="sm" onClick={() => setSeqOpen(true)}>
+            <Button variant="outline" size="sm" onClick={openSequenceDialog}>
               <Settings2 className="mr-2 h-4 w-4" />
               Nummerreeks
             </Button>

@@ -389,24 +389,20 @@ export function ProductEditor({ open, productId, onOpenChange, onSaved }: Props)
         if (error) throw error;
       }
 
-      // Always upsert sort_order for every attachment
-      for (const a of attached) {
-        if (originalAttachedIds.has(a.group_id)) {
-          const { error } = await supabase
-            .from("product_modifier_groups")
-            .update({ sort_order: a.sort_order })
-            .eq("product_id", pid!)
-            .eq("group_id", a.group_id);
-          if (error) throw error;
-        } else {
-          const { error } = await supabase.from("product_modifier_groups").insert({
-            org_id: orgId,
-            product_id: pid!,
-            group_id: a.group_id,
-            sort_order: a.sort_order,
-          });
-          if (error) throw error;
-        }
+      // Single upsert for all attachments (no N+1).
+      if (attached.length > 0) {
+        const { error } = await supabase
+          .from("product_modifier_groups")
+          .upsert(
+            attached.map((a) => ({
+              org_id: orgId,
+              product_id: pid!,
+              group_id: a.group_id,
+              sort_order: a.sort_order,
+            })),
+            { onConflict: "product_id,group_id" },
+          );
+        if (error) throw error;
       }
 
       toast.success("Product opgeslagen.");
@@ -429,7 +425,10 @@ export function ProductEditor({ open, productId, onOpenChange, onSaved }: Props)
     }
     setNewCatSaving(true);
     try {
-      const maxSort = categories.reduce((m, c) => Math.max(m, 0), 0);
+      const maxSort = categories.reduce(
+        (m, c) => Math.max(m, (c as { sort_order?: number }).sort_order ?? 0),
+        0,
+      );
       const { data, error } = await supabase
         .from("product_categories")
         .insert({

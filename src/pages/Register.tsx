@@ -360,10 +360,13 @@ export default function Register() {
       p_payment_method: args.method,
       p_cash_received_cents: args.cashReceivedCents,
       p_change_cents: args.changeCents,
-    };
+    } as const;
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data, error } = await (supabase.rpc as any)("create_sale", payload);
+    const { data, error } = await supabase.rpc("create_sale", {
+      ...payload,
+      // p_items is typed as Json; serialize the typed array.
+      p_items: payload.p_items as unknown as import("@/integrations/supabase/types").Json,
+    });
     setSubmitting(false);
 
     if (error) {
