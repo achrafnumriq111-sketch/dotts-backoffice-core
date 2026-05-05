@@ -184,7 +184,7 @@ function statusBadge(status: string, voided?: boolean) {
 
 export default function Sales() {
   const { currentOrg, currentOrgFull } = useOrg();
-  const { canVoidSale, canEmailReceipt } = usePositionPermissions(currentOrg?.id);
+  const { canVoidSale, canEmailReceipt, loading: permsLoading } = usePositionPermissions(currentOrg?.id);
 
   const [rangeKey, setRangeKey] = useState<DateRangeKey>("today");
   const [customFrom, setCustomFrom] = useState<string>("");
@@ -672,7 +672,7 @@ export default function Sales() {
               )}
 
               <div className="mt-4 flex justify-end">
-                {canVoidSale && (
+                {!permsLoading && canVoidSale && (
                   <Button
                     variant="destructive"
                     size="sm"
@@ -735,7 +735,7 @@ export default function Sales() {
                     {format(new Date(detail.receipt_emailed_at), "d MMM HH:mm", { locale: nl })}
                   </p>
                 )}
-                {canEmailReceipt && (
+                {!permsLoading && canEmailReceipt && (
                   <Button
                     variant="outline"
                     onClick={() => {
