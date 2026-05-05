@@ -32,7 +32,7 @@ export function ReceiptModal({ open, data, org, onClose, onNewOrder }: Props) {
   const [emailValue, setEmailValue] = useState("");
   const [emailSubmitting, setEmailSubmitting] = useState(false);
   const { currentOrg } = useOrg();
-  const { canEmailReceipt } = usePositionPermissions(currentOrg?.id);
+  const { canEmailReceipt, loading: permsLoading } = usePositionPermissions(currentOrg?.id);
 
   if (!data) return null;
 
@@ -116,7 +116,7 @@ export function ReceiptModal({ open, data, org, onClose, onNewOrder }: Props) {
         </div>
 
         <div className="flex flex-col gap-2 sm:flex-row">
-          {canEmailReceipt && (
+          {!permsLoading && canEmailReceipt && (
             <Button
               variant="outline"
               className="flex-1"
