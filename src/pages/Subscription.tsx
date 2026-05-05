@@ -198,7 +198,7 @@ export default function Subscription() {
           .maybeSingle(),
         supabase
           .from("invoices")
-          .select("id, created_at, description, kind, amount_cents, status")
+          .select("id, created_at, description, kind, amount_cents, status, hosted_invoice_url, invoice_pdf_url")
           .eq("org_id", currentOrg.id)
           .order("created_at", { ascending: false })
           .limit(50),
@@ -249,7 +249,10 @@ export default function Subscription() {
                 <div className="text-sm">
                   <p className="font-medium text-success">Actief abonnement</p>
                   <p className="text-muted-foreground">
-                    €79/mnd · verlengt op{" "}
+                    {subscription
+                      ? `${formatEUR(subscription.price_cents)}/${subscription.billing_cycle === "yearly" ? "jr" : "mnd"} · `
+                      : ""}
+                    verlengt op{" "}
                     {formatDateNL(currentOrgFull.subscription_current_period_end)}
                   </p>
                 </div>
@@ -421,11 +424,24 @@ export default function Subscription() {
                       <TableCell>
                         <StatusBadge status={inv.status} map={INVOICE_STATUS_MAP} />
                       </TableCell>
-                      <TableCell className="text-right">
-                        <Button variant="ghost" size="icon" className="h-8 w-8" disabled>
-                          <Download className="h-4 w-4" />
-                        </Button>
-                      </TableCell>
+                       <TableCell className="text-right">
+                         {(inv.invoice_pdf_url || inv.hosted_invoice_url) ? (
+                           <Button variant="ghost" size="icon" className="h-8 w-8" asChild>
+                             <a
+                               href={inv.invoice_pdf_url || inv.hosted_invoice_url || "#"}
+                               target="_blank"
+                               rel="noopener noreferrer"
+                               aria-label="Factuur downloaden"
+                             >
+                               <Download className="h-4 w-4" />
+                             </a>
+                           </Button>
+                         ) : (
+                           <Button variant="ghost" size="icon" className="h-8 w-8" disabled>
+                             <Download className="h-4 w-4" />
+                           </Button>
+                         )}
+                       </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
