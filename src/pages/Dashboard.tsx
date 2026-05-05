@@ -1,9 +1,14 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { fromZonedTime } from "date-fns-tz";
-import { ArrowUpRight, ArrowDownRight, Receipt, ShoppingBag, Users, Wallet } from "lucide-react";
+import { format } from "date-fns";
+import { nl } from "date-fns/locale";
+import { ArrowUpRight, ArrowDownRight, Receipt, ShoppingBag, Users, Wallet, ChevronRight } from "lucide-react";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { t, formatCurrency } from "@/lib/i18n";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrg } from "@/context/OrgContext";
@@ -26,6 +31,14 @@ function startOfTodayAmsterdam(): Date {
 interface DayStats {
   omzetCents: number;
   count: number;
+}
+
+interface RecentSale {
+  id: string;
+  receipt_number: string;
+  created_at: string;
+  total_cents: number;
+  voided: boolean;
 }
 
 async function fetchDayStats(orgId: string, from: Date, to: Date): Promise<DayStats> {
@@ -69,6 +82,7 @@ export default function Dashboard() {
   const [today, setToday] = useState<DayStats>({ omzetCents: 0, count: 0 });
   const [yesterday, setYesterday] = useState<DayStats>({ omzetCents: 0, count: 0 });
   const [activeStaff, setActiveStaff] = useState<number>(0);
+  const [recentSales, setRecentSales] = useState<RecentSale[]>([]);
 
   useEffect(() => {
     if (!currentOrg) return;
@@ -80,19 +94,26 @@ export default function Dashboard() {
       const startTomorrow = new Date(startToday.getTime() + 24 * 60 * 60 * 1000);
       const startYesterday = new Date(startToday.getTime() - 24 * 60 * 60 * 1000);
 
-      const [todayStats, yStats, staff] = await Promise.all([
+      const [todayStats, yStats, staff, recent] = await Promise.all([
         fetchDayStats(currentOrg.id, startToday, startTomorrow),
         fetchDayStats(currentOrg.id, startYesterday, startToday),
         supabase
           .from("org_members")
           .select("user_id", { count: "exact", head: true })
           .eq("org_id", currentOrg.id),
+        supabase
+          .from("sales")
+          .select("id, receipt_number, created_at, total_cents, voided")
+          .eq("org_id", currentOrg.id)
+          .order("created_at", { ascending: false })
+          .limit(8),
       ]);
 
       if (cancelled) return;
       setToday(todayStats);
       setYesterday(yStats);
       setActiveStaff(staff.count ?? 0);
+      setRecentSales((recent.data ?? []) as RecentSale[]);
       setLoading(false);
     })();
 
@@ -172,13 +193,66 @@ export default function Dashboard() {
       </div>
 
       <Card className="mt-6">
-        <CardHeader>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0">
           <CardTitle className="text-base">{tr.dashboard.recentSales}</CardTitle>
+          <Button asChild variant="ghost" size="sm">
+            <Link to="/verkopen">
+              Alles bekijken
+              <ChevronRight className="ml-1 h-4 w-4" />
+            </Link>
+          </Button>
         </CardHeader>
         <CardContent>
-          <div className="rounded-md border border-dashed border-border py-12 text-center text-sm text-muted-foreground">
-            {tr.dashboard.recentSalesEmpty}
-          </div>
+          {loading ? (
+            <div className="space-y-2">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <Skeleton key={i} className="h-10 w-full" />
+              ))}
+            </div>
+          ) : recentSales.length === 0 ? (
+            <div className="rounded-md border border-dashed border-border py-12 text-center text-sm text-muted-foreground">
+              {tr.dashboard.recentSalesEmpty}
+            </div>
+          ) : (
+            <ul className="divide-y divide-border">
+              {recentSales.map((s) => (
+                <li
+                  key={s.id}
+                  className="flex items-center justify-between py-2.5 text-sm"
+                >
+                  <div className="flex min-w-0 items-center gap-3">
+                    <Receipt className="h-4 w-4 shrink-0 text-muted-foreground" />
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium tabular-nums">
+                          {s.receipt_number}
+                        </span>
+                        {s.voided && (
+                          <Badge
+                            variant="outline"
+                            className="border-0 bg-destructive/10 text-destructive"
+                          >
+                            Gestorneerd
+                          </Badge>
+                        )}
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        {format(new Date(s.created_at), "d MMM HH:mm", { locale: nl })}
+                      </div>
+                    </div>
+                  </div>
+                  <div
+                    className={
+                      "font-semibold tabular-nums " +
+                      (s.voided ? "text-muted-foreground line-through" : "")
+                    }
+                  >
+                    {formatCurrency(s.total_cents / 100)}
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
         </CardContent>
       </Card>
     </>
