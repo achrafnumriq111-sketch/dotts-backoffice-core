@@ -429,7 +429,10 @@ export function ProductEditor({ open, productId, onOpenChange, onSaved }: Props)
     }
     setNewCatSaving(true);
     try {
-      const maxSort = categories.reduce((m, c) => Math.max(m, 0), 0);
+      const maxSort = categories.reduce(
+        (m, c) => Math.max(m, (c as { sort_order?: number }).sort_order ?? 0),
+        0,
+      );
       const { data, error } = await supabase
         .from("product_categories")
         .insert({
