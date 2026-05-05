@@ -128,7 +128,7 @@ function VarianceBadge({ cents }: { cents: number }) {
 export default function Closing() {
   const { currentOrg, currentRole } = useOrg();
   const orgId = currentOrg?.id ?? null;
-  const { canCloseRegister } = usePositionPermissions(orgId);
+  const { canCloseRegister, loading: permsLoading } = usePositionPermissions(orgId);
   const canManageSequence =
     currentRole === "owner" ||
     currentRole === "admin" ||
@@ -615,12 +615,12 @@ export default function Closing() {
                 <Button
                   size="lg"
                   className="w-full"
-                  disabled={!hasCounted || closing || !canCloseRegister}
+                  disabled={!hasCounted || closing || permsLoading || !canCloseRegister}
                   onClick={() => setConfirmOpen(true)}
                 >
                   Kassa sluiten
                 </Button>
-                {!canCloseRegister && (
+                {!permsLoading && !canCloseRegister && (
                   <p className="mt-2 text-xs text-muted-foreground">
                     Je hebt geen rechten om de kassa af te sluiten. Vraag een
                     beheerder om de rechten van je functie aan te passen.
