@@ -25,7 +25,13 @@ export default function AuthCallback() {
 
     const finish = async () => {
       try {
-        await supabase.auth.getSession();
+        // PKCE flow returns ?code=...; exchange it for a session.
+        const code = new URLSearchParams(window.location.search).get("code");
+        if (code) {
+          await supabase.auth.exchangeCodeForSession(window.location.href);
+        } else {
+          await supabase.auth.getSession();
+        }
       } finally {
         if (!active) return;
         window.location.replace(getRedirectTarget());

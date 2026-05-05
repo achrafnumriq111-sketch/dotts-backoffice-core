@@ -2,8 +2,18 @@
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from './types';
 
-const SUPABASE_URL = "https://yhaygqculidrqagcqzka.supabase.co";
-const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InloYXlncWN1bGlkcnFhZ2NxemthIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY1MDk0NTAsImV4cCI6MjA5MjA4NTQ1MH0.IWFg3vzRNCjFxafs4KrpoI9LjAhR4-QAuKmhIiY8wEg";
+const SUPABASE_URL =
+  (import.meta.env.VITE_SUPABASE_URL as string | undefined) ??
+  "https://yhaygqculidrqagcqzka.supabase.co";
+const SUPABASE_PUBLISHABLE_KEY =
+  (import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string | undefined) ??
+  (import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined) ??
+  "";
+
+if (!SUPABASE_PUBLISHABLE_KEY) {
+  // eslint-disable-next-line no-console
+  console.error("VITE_SUPABASE_PUBLISHABLE_KEY is missing in env.");
+}
 
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
@@ -56,6 +66,6 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
     persistSession: true,
     autoRefreshToken: true,
     detectSessionInUrl: true,
-    flowType: "implicit",
+    flowType: "pkce",
   },
 });
