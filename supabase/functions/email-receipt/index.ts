@@ -232,13 +232,13 @@ function buildHtml(org: OrgRow, sale: SaleRow, items: SaleItemRow[], payment: Pa
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders });
+    return new Response("ok", { headers: corsFor(req) });
   }
 
   try {
     const authHeader = req.headers.get("Authorization") ?? "";
     if (!authHeader.startsWith("Bearer ")) {
-      return json({ error: "unauthorized" }, 401);
+      return json(req, { error: "unauthorized" }, 401);
     }
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
@@ -246,7 +246,7 @@ Deno.serve(async (req) => {
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const brevoKey = Deno.env.get("BREVO_API_KEY");
     if (!brevoKey) {
-      return json({ error: "brevo_not_configured" }, 500);
+      return json(req, { error: "brevo_not_configured" }, 500);
     }
 
     // Identify caller via JWT
@@ -255,7 +255,7 @@ Deno.serve(async (req) => {
     });
     const { data: userData, error: userErr } = await userClient.auth.getUser();
     if (userErr || !userData?.user) {
-      return json({ error: "unauthorized" }, 401);
+      return json(req, { error: "unauthorized" }, 401);
     }
     const userId = userData.user.id;
 
@@ -264,14 +264,14 @@ Deno.serve(async (req) => {
     try {
       body = await req.json();
     } catch {
-      return json({ error: "invalid_json" }, 400);
+      return json(req, { error: "invalid_json" }, 400);
     }
     const saleId = typeof body?.sale_id === "string" ? body.sale_id.trim() : "";
     const recipientEmail =
       typeof body?.recipient_email === "string" ? body.recipient_email.trim() : "";
-    if (!saleId) return json({ error: "sale_id_required" }, 400);
+    if (!saleId) return json(req, { error: "sale_id_required" }, 400);
     if (!recipientEmail || !EMAIL_RE.test(recipientEmail) || recipientEmail.length > 254) {
-      return json({ error: "invalid_email" }, 400);
+      return json(req, { error: "invalid_email" }, 400);
     }
 
     // Fetch sale + org + items + payment with service role, then enforce membership
@@ -284,9 +284,9 @@ Deno.serve(async (req) => {
       .maybeSingle();
     if (saleErr) {
       console.error("sale fetch error", saleErr);
-      return json({ error: "sale_not_found" }, 404);
+      return json(req, { error: "sale_not_found" }, 404);
     }
-    if (!sale) return json({ error: "sale_not_found" }, 404);
+    if (!sale) return json(req, { error: "sale_not_found" }, 404);
 
     const { data: membership } = await admin
       .from("org_members")
@@ -295,7 +295,7 @@ Deno.serve(async (req) => {
       .eq("user_id", userId)
       .maybeSingle();
     if (!membership) {
-      return json({ error: "forbidden" }, 403);
+      return json(req, { error: "forbidden" }, 403);
     }
 
     const [{ data: org }, { data: items }, { data: payments }, { data: location }] =
@@ -308,7 +308,7 @@ Deno.serve(async (req) => {
           : Promise.resolve({ data: null }),
       ]);
 
-    if (!org) return json({ error: "org_not_found" }, 404);
+    if (!org) return json(req, { error: "org_not_found" }, 404);
 
     const html = buildHtml(
       org as OrgRow,
@@ -340,7 +340,7 @@ Deno.serve(async (req) => {
     if (!brevoRes.ok) {
       const txt = await brevoRes.text();
       console.error("brevo failed", brevoRes.status, txt);
-      return json({ error: "brevo_failed" }, 502);
+      return json(req, { error: "brevo_failed" }, 502);
     }
 
     await admin
@@ -351,9 +351,9 @@ Deno.serve(async (req) => {
       })
       .eq("id", saleId);
 
-    return json({ ok: true });
+    return json(req, { ok: true });
   } catch (e) {
     console.error("email-receipt fatal", e);
-    return json({ error: "internal_error" }, 500);
+    return json(req, { error: "internal_error" }, 500);
   }
 });
