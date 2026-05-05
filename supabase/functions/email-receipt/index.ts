@@ -60,10 +60,57 @@ function formatDateTimeNL(iso: string): string {
   }).format(new Date(iso));
 }
 
-type OrgRow = Record<string, any>;
-type SaleRow = Record<string, any>;
-type SaleItemRow = Record<string, any>;
-type PaymentRow = Record<string, any>;
+interface OrgRow {
+  id: string;
+  name?: string | null;
+  legal_name?: string | null;
+  logo_url?: string | null;
+  receipt_show_logo?: boolean | null;
+  receipt_show_address?: boolean | null;
+  receipt_show_kvk?: boolean | null;
+  receipt_show_vat_number?: boolean | null;
+  receipt_show_contact?: boolean | null;
+  receipt_footer?: string | null;
+  primary_color?: string | null;
+  street?: string | null;
+  city?: string | null;
+  postal_code?: string | null;
+  country?: string | null;
+  phone?: string | null;
+  email?: string | null;
+  website?: string | null;
+  kvk_number?: string | null;
+  vat_number?: string | null;
+}
+interface SaleRow {
+  id: string;
+  org_id: string;
+  receipt_number: string;
+  created_at: string;
+  subtotal_cents: number;
+  tax_cents: number;
+  discount_cents: number;
+  total_cents: number;
+  location_id: string | null;
+}
+interface SaleItemRow {
+  id: string;
+  name_snapshot: string;
+  variant_name: string | null;
+  quantity: number;
+  price_cents_snapshot: number;
+  line_subtotal_cents: number;
+  line_total_cents: number;
+  line_tax_cents: number;
+  tax_rate_bps_snapshot: number;
+  modifiers: Array<{ name: string; price_delta_cents: number }>;
+}
+interface PaymentRow {
+  method: string;
+  amount_cents: number;
+  tendered_cents: number | null;
+  change_cents: number | null;
+}
 
 function buildHtml(org: OrgRow, sale: SaleRow, items: SaleItemRow[], payment: PaymentRow | null, locationName: string | null): string {
   const showLogo = org.receipt_show_logo !== false && !!org.logo_url;
