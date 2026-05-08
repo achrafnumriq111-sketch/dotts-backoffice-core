@@ -32,6 +32,12 @@ import Subscription from "./pages/Subscription";
 import NotFound from "./pages/NotFound";
 import Welcome from "./pages/Welcome";
 import AuthCallback from "./pages/AuthCallback";
+import { RequireSuperAdmin } from "@/components/auth/RequireSuperAdmin";
+import { SuperAdminLayout } from "@/components/layout/SuperAdminLayout";
+import SuperAdminOverview from "./pages/superadmin/Overview";
+import SuperAdminClients from "./pages/superadmin/Clients";
+import SuperAdminClientDetail from "./pages/superadmin/ClientDetail";
+import SuperAdminInvoices from "./pages/superadmin/Invoices";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -60,7 +66,22 @@ const App = () => (
             <Route path="/welcome" element={<Welcome />} />
             <Route path="/auth/callback" element={<AuthCallback />} />
 
-            {/* Authenticated routes */}
+            {/* Super-admin routes — own guard + layout, no OrgProvider */}
+            <Route
+              path="/superadmin"
+              element={
+                <RequireSuperAdmin>
+                  <SuperAdminLayout />
+                </RequireSuperAdmin>
+              }
+            >
+              <Route index element={<SuperAdminOverview />} />
+              <Route path="clients" element={<SuperAdminClients />} />
+              <Route path="clients/:orgId" element={<SuperAdminClientDetail />} />
+              <Route path="invoices" element={<SuperAdminInvoices />} />
+            </Route>
+
+            {/* Authenticated app routes */}
             <Route
               path="*"
               element={
